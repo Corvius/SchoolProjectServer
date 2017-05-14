@@ -39,7 +39,13 @@ namespace SchoolProjectServer
             if (enumerableTweets == null)
                 return null;
 
-            return enumerableTweets.Select(tweets => (string)(tweets["text"].ToString()));
+            //var twi = enumerableTweets.ToList();
+            //foreach (var tw in twi)
+            //    foreach (var t in tw)
+            //        Console.WriteLine("#### " + t.ToString());
+
+            //return enumerableTweets.Select(tweets => (string)(tweets["text"].ToString()));
+            return enumerableTweets.Select(tweets => (string)(tweets["created_at"].ToString()));
         }
 
         public async Task<string> GetAccessToken()
