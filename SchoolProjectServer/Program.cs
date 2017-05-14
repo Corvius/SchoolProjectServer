@@ -16,9 +16,10 @@ namespace SchoolProjectServer
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            
+            // Form Setup
             MainForm mainWindow = new MainForm() { StartPosition = FormStartPosition.Manual, Location = new System.Drawing.Point(200, 200) };
-            Console.WriteLine("L: " + mainWindow.Left + "| W: " + mainWindow.Width);
-            CustomLog.LogWindows.CreateLogWindow(new System.Drawing.Point(mainWindow.Left + mainWindow.Width, mainWindow.Top), new System.Drawing.Size(400, 400), "Event log");
+            CustomLog.LogWindows.CreateLogWindow("Events", "Event log", new System.Drawing.Point(mainWindow.Left + mainWindow.Width, mainWindow.Top), new System.Drawing.Size(400, 400));
 
             Application.Run(mainWindow);
         }

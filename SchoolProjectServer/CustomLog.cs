@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace CustomLog
 {
@@ -27,10 +28,10 @@ namespace CustomLog
         //}
 
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void Log(this object source, LogLevels level, string message)
+        public static void Log(this object source, LogLevels level, string message, string logWindowID = LogWindows.DefaultLogWindowID)
         {
             // TODO: Add log logic here!
-            LogWindows.SendToWindow(0, System.DateTime.Now.ToString() + " [ " + level.ToString() + " ] : " + message);
+            LogWindows.SendToWindow(logWindowID, System.DateTime.Now.ToString() + " [ " + level.ToString() + " ] : " + message);
         }
     }
 
@@ -39,10 +40,11 @@ namespace CustomLog
     /// </summary>
     public static class LogWindows
     {
-        private static List<Form> logWindowList = new List<Form>();
+        private static Dictionary<string, Form> logWindowList = new Dictionary<string, Form>();
+        public const string DefaultLogWindowID = "DefaultLogWindow";
 
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void CreateLogWindow(Point pStartPosition, Size pWindowSize, string pCaption)
+        public static void CreateLogWindow(string pLogWindowID, string pCaption, Point pStartPosition, Size pWindowSize)
         {
             Form logForm = new Form()
             {
@@ -54,11 +56,21 @@ namespace CustomLog
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MinimizeBox = false,
                 MaximizeBox = false,
-                Text = pCaption,
+                Text = (pCaption == string.Empty)? pLogWindowID: pCaption,
                 Tag = pStartPosition,
+                ControlBox = false,
             };
 
-            logWindowList.Add(logForm);
+            if (pLogWindowID != "" && !logWindowList.ContainsKey(pLogWindowID))
+                logWindowList.Add(pLogWindowID, logForm);
+            else
+                if (logWindowList.ContainsKey(DefaultLogWindowID))
+                {
+                    logWindowList[DefaultLogWindowID].Close();
+                    logWindowList[DefaultLogWindowID] = logForm;
+                }
+                else
+                    logWindowList.Add(DefaultLogWindowID, logForm);
 
             logForm.Controls.Add(new RichTextBoxExt()
             {
@@ -79,19 +91,24 @@ namespace CustomLog
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void SendToWindow(int windowID, string message)
+        public static void SendToWindow(string windowID, string message)
         {
-            if (windowID < logWindowList.Count)
-            { 
-                Form window = logWindowList[windowID];
-                if (window != null )
-                    ((RichTextBoxExt)window.Controls[0]).AppendText(message + "\n");
-            }
+            Form window = null;
+
+            if (logWindowList.ContainsKey(windowID))
+                window = logWindowList[windowID];
+            else if (logWindowList.ContainsKey(DefaultLogWindowID))
+                window = logWindowList[DefaultLogWindowID];
+            else if (logWindowList.Count > 0)
+                window = logWindowList[logWindowList.Keys.First()];
+
+            if (window != null)
+                ((RichTextBoxExt)window.Controls[0]).AppendText(message + "\n");
         }
 
         private static void LogWindow_FormClosing(object sender, FormClosingEventArgs e)
         {
-            e.Cancel = e.CloseReason == CloseReason.UserClosing;
+            //e.Cancel = e.CloseReason == CloseReason.UserClosing;
 
             //e.Cancel =
             //    e.CloseReason != CloseReason.FormOwnerClosing
