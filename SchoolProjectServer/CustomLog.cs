@@ -59,6 +59,7 @@ namespace CustomLog
                 Text = (pCaption == string.Empty)? pLogWindowID: pCaption,
                 Tag = pStartPosition,
                 ControlBox = false,
+                AutoScroll = true,
             };
 
             if (pLogWindowID != "" && !logWindowList.ContainsKey(pLogWindowID))

@@ -22,7 +22,7 @@ namespace SchoolProjectServer
             OAuthConsumerSecret = pOAuthConsumerSecret;
         }
 
-        public async Task<IEnumerable<string>> GetTweets(string userName, int tweetCount, string accessToken = null)
+        public async Task<List<Tweet>> GetTweets(string userName, int tweetCount, string accessToken = null)
         {
             if (accessToken == null)
                 accessToken = await GetAccessToken();
@@ -39,13 +39,21 @@ namespace SchoolProjectServer
             if (enumerableTweets == null)
                 return null;
 
-            //var twi = enumerableTweets.ToList();
-            //foreach (var tw in twi)
-            //    foreach (var t in tw)
-            //        Console.WriteLine("#### " + t.ToString());
+            var query = enumerableTweets
+                .Select(value => new {
+                    id = (string)value["id_str"].ToString(),
+                    text = (string)value["text"].ToString(),
+                    time = (string)value["created_at"].ToString()
+                });
 
-            //return enumerableTweets.Select(tweets => (string)(tweets["text"].ToString()));
-            return enumerableTweets.Select(tweets => (string)(tweets["created_at"].ToString()));
+            List<Tweet> tweets = new List<Tweet>();
+
+            foreach (var tweet in query)
+            {
+                tweets.Add(new Tweet(tweet.id, tweet.text, DateTime.ParseExact(tweet.time, "ddd MMM dd H:mm:ss K yyyy", System.Globalization.CultureInfo.InvariantCulture)));
+            }
+            
+            return tweets;
         }
 
         public async Task<string> GetAccessToken()
