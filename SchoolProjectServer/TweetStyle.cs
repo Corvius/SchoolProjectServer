@@ -11,31 +11,49 @@ namespace SchoolProjectServer
     class TweetStyle
     {
         public string Name { get; }
-        private OrderedDictionary properties = new OrderedDictionary();
+        public string PictureURL { get; }
+        public List<StyleProperty> properties { get; }
 
-        public TweetStyle(string name)
+        public TweetStyle(string name, string pictureURL)
         {
-            if (name != string.Empty)
-                Name = name;
-            else
-                Name = "TweetStyle";
+            properties = new List<StyleProperty>();
+
+            Name = (name == string.Empty) ? "TweetStyle" : name;
+            PictureURL = (pictureURL == null) ? "" : pictureURL;
         }
 
-        public void AddProperty(string original, string modified)
+        public TweetStyle(string name) : this(name, "") { }
+
+        public void AddProperty(string original, string replacement)
         {
-            if (original != string.Empty && modified != string.Empty)
+            bool match = false;
+
+            if (original != string.Empty && replacement != string.Empty)
             {
-                
-                if (properties.Contains(original))
+                foreach (StyleProperty property in properties)
+                    if (property.Original == original)
+                    {
+                        match = true;
+                        break;
+                    }
+
+                if (match)
                     this.Log(LogExtension.LogLevels.Warning, original + " is already among properties", "Events");
                 else
-                    properties.Add(original, modified);
+                    properties.Add(new StyleProperty(original, replacement));
             }
         }
 
-        public void ModifyProperty(string original = null, string modified = null)
+        public void ModifyProperty(string original = null, string replacement = null)
         {
+            foreach (StyleProperty property in properties)
+                if (property.Original == original)
+                    if (replacement != null)
+                    {
+                        this.Log(LogExtension.LogLevels.Info, "Property " + original + " has changed from " + property.Replacement + " to " + replacement, "Events");
 
+                        property.Replacement = replacement;
+                    }
         }
     }
 }

@@ -9,12 +9,12 @@ namespace SchoolProjectServer
     class StyleProperty
     {
         public string Original { get; set; }
-        public string Modified { get; set; }
+        public string Replacement { get; set; }
 
-        public StyleProperty(string original, string modified)
+        public StyleProperty(string original, string replacement)
         {
             Original = original;
-            Modified = modified;
+            Replacement = replacement;
         }
     }
 }

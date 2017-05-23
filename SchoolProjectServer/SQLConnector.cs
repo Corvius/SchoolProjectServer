@@ -17,6 +17,8 @@ namespace SchoolProjectServer
         /// Holds the necessary data to connect to the database
         /// </summary>
         private readonly string connectionString;
+        private SqlConnection sqlConnection;
+        private SqlDataAdapter dataAdapter;
 
         /// <summary>
         /// Initializes the object and builds the connection string
@@ -37,6 +39,9 @@ namespace SchoolProjectServer
                 builder.Password = "GetTrumpTweets";
 
                 connectionString = builder.ConnectionString;
+
+                sqlConnection = new SqlConnection(connectionString);
+                dataAdapter = new SqlDataAdapter();
             }
             catch (Exception ex)
             {
@@ -46,82 +51,176 @@ namespace SchoolProjectServer
         }
 
         /// <summary>
-        /// Gets all (attirbutes, stats) data related to a single character in a specific order
+        /// Test that the server is connected
         /// </summary>
-        /// <param name="pCharName">Name of the character</param>
-        /// <returns>Returns a DataHolder list filled with the requested data</returns>
-        public List<DataHolder> GetElementData(string pCharName)
+        /// <param name="connectionString">The connection string</param>
+        /// <returns>true if the connection is opened</returns>
+        public bool IsServerConnected()
         {
-            this.Log(LogExtension.LogLevels.Info, "Retrieving element data");
-
-            string selectCommandString =
-                "SELECT * " +
-                "FROM dbo.pirate;";
-
-            List<DataHolder> results = new List<DataHolder>();
-
-            foreach (var entry in SelectData(selectCommandString, true))
+            try
             {
-                results.Add(new DataHolder(entry[0], entry[1]));
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    return true;
+                }
             }
+            catch (SqlException)
+            {
+                return false;
+            }
+        }
 
-            return results;
+        public bool UpdateTweets(List<Tweet> tweets)
+        {
+            //TODO: Write update method
+            foreach (var t in tweets)
+                Console.WriteLine(t.ToString());
+
+            return false;
         }
 
         /// <summary>
         /// Connects to the database and executes the given SELECT command.
         /// </summary>
         /// <param name="pSelectCommandString">The SQL SELECT command to be executed on the database</param>
-        /// <param name="idFilter">If true, all columns that have the substring 'ID' in their name will be ignored</param>
-        /// <returns>Returns a DataHolder list filled with the requested data</returns>
-        private List<List<string>> SelectData(string pSelectCommandString, bool idFilter)
+        /// <returns>If the query is successful, returns a DataSet object</returns>
+        private DataTable SelectData(string pSelectCommandString, string tableName)
         {
-            try
-            {
-                // Create return variable
-                List<List<string>> results = new List<List<string>>();
+            // Create return variable
+            DataTable results = new DataTable(tableName);
 
-                using (SqlConnection sqlConnection = new SqlConnection(connectionString))
-                {
-                    using (SqlDataAdapter dataAdapter = new SqlDataAdapter())
-                    {
-                        dataAdapter.SelectCommand = new SqlCommand(pSelectCommandString, sqlConnection);
+            dataAdapter.SelectCommand = new SqlCommand(pSelectCommandString, sqlConnection);
 
-                        using (DataSet dataSet = new DataSet())
-                        {
-                            // Populate the dataset from the database
-                            dataAdapter.Fill(dataSet);
+            // Populate the dataset from the database
+            dataAdapter.Fill(results);
 
-                            int tableIndex = 0;
-                            for (int rowIndex = 0; rowIndex < dataSet.Tables[tableIndex].Rows.Count; rowIndex++)
-                            {
-                                results.Add(new List<string>());
+            return results;
+        }
 
-                                for (int columnIndex = 0; columnIndex < dataSet.Tables[tableIndex].Columns.Count; columnIndex++)
-                                {
-                                    string cellValue = dataSet.Tables[tableIndex].Rows[rowIndex][columnIndex].ToString();
+        public DataSet GetTweetStyles()
+        {
+            DataSet results = new DataSet("TweetStyles");
+            DataTable nameQuery = null;
+            DataTable contentQuery = null;
+            string selectNamesCommand;
+            string selectContentsCommand;
+            string styleName;
+            string styleImage;
 
-                                    results[rowIndex].Add(cellValue);
-                                }
-                            }
-                        }
-                    }
-                }
-                // Final error check
-                if (results.Count == 0)
-                {
-                    throw new Exception("No data returned");
-                }
+            selectNamesCommand =
+                "SELECT StyleName, StyleImage " +
+                "FROM TTS_DB.dbo.styles " +
+                "WHERE OBJECT_ID(LOWER(N'dbo.' + StyleName), N'U') IS NOT NULL;";
 
-                return results;
+            nameQuery = SelectData(selectNamesCommand, "StyleNames");
+
+            results.Tables.Add(nameQuery);
+
+            for (int nameRowIndex = 0; nameRowIndex < nameQuery.Rows.Count; nameRowIndex++)
+            { 
+                styleName = nameQuery.Rows[nameRowIndex][0].ToString();
+                styleImage = nameQuery.Rows[nameRowIndex][1].ToString();
+
+                selectContentsCommand = string.Format(
+                    "SELECT Original, Replacement " +
+                    "FROM TTS_DB.dbo.{0};", styleName.ToLower());
+
+                contentQuery = SelectData(selectContentsCommand, styleName);
+
+                results.Tables.Add(contentQuery);
+
             }
-            catch (Exception ex)
-            {
-                // TODO: Log error
-                Console.WriteLine(ex.Message);
 
-                return null;
-            }
+            return results;
         }
     }
 }
+
+// Welcome to the Graveyard!
+// You may find both trash and treasure in this section for discarded methods. Enjoy!
+/*
+
+/// <summary>
+/// Gets all (attirbutes, stats) data related to a single character in a specific order
+/// </summary>
+/// <param name="pCharName">Name of the character</param>
+/// <returns>Returns a DataHolder list filled with the requested data</returns>
+public List<DataHolder> GetElementData(string pCharName)
+{
+    this.Log(LogExtension.LogLevels.Info, "Retrieving element data");
+
+    string selectCommandString =
+        "SELECT * " +
+        "FROM dbo.pirate;";
+
+    List<DataHolder> results = new List<DataHolder>();
+
+    foreach (var entry in SelectData(selectCommandString, true))
+    {
+        results.Add(new DataHolder(entry[0], entry[1]));
+    }
+
+    return results;
+}
+
+            for (int rowIndex = 0; rowIndex < dataSet.Tables[tableIndex].Rows.Count; rowIndex++)
+            {
+                results.Add(new List<string>());
+
+                for (int columnIndex = 0; columnIndex < dataSet.Tables[tableIndex].Columns.Count; columnIndex++)
+                {
+                    string cellValue = dataSet.Tables[tableIndex].Rows[rowIndex][columnIndex].ToString();
+
+
+        public List<TweetStyle> GetTweetStyles()
+        {
+            List<TweetStyle> results = new List<TweetStyle>();
+            TweetStyle currentStyle = null;
+            DataTable nameQuery = null;
+            DataTable contentQuery = null;
+            string selectNamesCommand;
+            string selectContentsCommand;
+            string styleName;
+            string styleImage;
+            string original;
+            string replacement;
+
+            selectNamesCommand =
+                "SELECT StyleName, StyleImage " +
+                "FROM TTS_DB.dbo.styles " +
+                "WHERE OBJECT_ID(LOWER(N'dbo.' + StyleName), N'U') IS NOT NULL;";
+
+            nameQuery = SelectData(selectNamesCommand);
+
+            for (int nameRowIndex = 0; nameRowIndex < nameQuery.Rows.Count; nameRowIndex++)
+            { 
+                styleName = nameQuery.Rows[nameRowIndex][0].ToString();
+                styleImage = nameQuery.Rows[nameRowIndex][1].ToString();
+
+                currentStyle = new TweetStyle(styleName, styleImage);
+
+                selectContentsCommand = string.Format(
+                    "SELECT Original, Replacement " +
+                    "FROM TTS_DB.dbo.{0};", styleName.ToLower());
+
+                contentQuery = SelectData(selectContentsCommand);
+
+                for (int contentRowIndex = 0; contentRowIndex < contentQuery.Rows.Count; contentRowIndex++)
+                {
+                    original = nameQuery.Rows[nameRowIndex][0].ToString();
+                    replacement = nameQuery.Rows[nameRowIndex][1].ToString();
+
+                    currentStyle.AddProperty(original, replacement);
+                }
+
+                results.Add(currentStyle);
+            }
+
+            return results;
+           
+        }
+    }
+
+
+*/
