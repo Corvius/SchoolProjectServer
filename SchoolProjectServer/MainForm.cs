@@ -1,10 +1,7 @@
 ﻿using CustomLog;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Collections.Specialized;
-using System.Linq;
 using System.Data;
 using System.Drawing;
 
@@ -15,6 +12,7 @@ namespace SchoolProjectServer
         private const string defaultServerURL = "localhost";
         private const string defaultServerPort = "";
         private const int maxTweetsToFetch = 10;
+        private int timerInterval = 30;
 
         private string currentServerURL = defaultServerURL;
         private string currentServerPort = defaultServerPort;
@@ -55,7 +53,6 @@ namespace SchoolProjectServer
         private void MainForm_Shown(object sender, EventArgs e)
         {
             // Timer setup
-            int timerInterval = 10;
             tmrRecheckTweets.Interval = timerInterval * 1000; // 5 minutes
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer interval is set to " + timerInterval.ToString() + " seconds");
 
@@ -84,18 +81,6 @@ namespace SchoolProjectServer
         private void ResetStylecomponents()
         {
             //TODO: Write a reset function!
-            //TweetStyle style = tweetStyles[selectedtStyleID];
-
-            //dgwStyleElements.Enabled = Editable;
-            //cbStyles.Enabled = Editable;
-            //pbStyleImage.Enabled = Editable;
-            //txtImagePath.Enabled = Editable;
-            //btLoadImageURL.Enabled = Editable;
-            //btClearImage.Enabled = Editable;
-            //btAddNewStyle.Enabled = Editable;
-            //btRemoveStyle.Enabled = Editable;
-            //btReloadStyle.Enabled = Editable;
-            //btUpdateServer.Enabled = Editable;
         }
 
         private void LoadStyleComponents(string styleName)
@@ -103,10 +88,22 @@ namespace SchoolProjectServer
             DataTable selectedStyle = tweetStyleData.Tables[styleName];
 
             dgwStyleElements.DataSource = selectedStyle;
-            //for (int contentRowIndex = 0; contentRowIndex < selectedStyle.Rows.Count; contentRowIndex++)
-            //{
-            //    cbStyles.Items.Add(selectedStyle.Rows[contentRowIndex][0].ToString());
-            //}
+
+            DataTable styleNames = tweetStyleData.Tables["StyleNames"];
+            string imageLocation = "";
+            for (int contentRowIndex = 0; contentRowIndex < styleNames.Rows.Count; contentRowIndex++)
+            {
+                if (styleName == styleNames.Rows[contentRowIndex][0].ToString())
+                {
+                    imageLocation = styleNames.Rows[contentRowIndex][1].ToString();
+                    if (imageLocation != "")
+                    {
+                        pbStyleImage.Load(imageLocation);
+                        txtImagePath.Text = imageLocation;
+                    }
+                    break;
+                }
+            }
         }
 
         private void EnableStyleComponents()
@@ -169,13 +166,9 @@ namespace SchoolProjectServer
         #region Event Handlers
         private void btReloadStyle_Click(object sender, EventArgs e)
         {
-            //TODO: WHAT THE HELL IS THIS!?
-            //List<DataHolder> cellDataQuery;
-            //cellDataQuery = sqlDBConnection.GetElementData("What");
-            //foreach (DataHolder cellData in cellDataQuery)
-            //{
-            //    this.Log(LogExtension.LogLevels.Info, cellData.original + " - " + cellData.replacement);
-            //}
+            string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
+            if (styleName != string.Empty)
+                LoadStyleComponents(styleName);
         }
 
         private void btOpenImage_Click(object sender, EventArgs e)

@@ -30,7 +30,7 @@ namespace CustomLog
         [System.Diagnostics.Conditional("DEBUG")]
         public static void Log(this object source, LogLevels level, string message, string logWindowID = LogWindows.DefaultLogWindowID)
         {
-            // TODO: Add log logic here!
+            // TODO: Add better log logic here!
             LogWindows.SendToWindow(logWindowID, System.DateTime.Now.ToString() + " [ " + level.ToString() + " ] : " + message);
         }
     }

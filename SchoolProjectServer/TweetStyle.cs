@@ -32,7 +32,7 @@ namespace SchoolProjectServer
             {
                 foreach (StyleProperty property in properties)
                     if (property.Original == original)
-                    {
+                    {  
                         match = true;
                         break;
                     }

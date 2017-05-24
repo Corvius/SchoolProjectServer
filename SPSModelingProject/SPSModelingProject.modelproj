@@ -22,13 +22,6 @@
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\ArchitectureTools\Microsoft.VisualStudio.TeamArchitect.ModelingProject.targets" Condition="'$(VSToolsPath)' != ''" />
   <ItemGroup>
-    <Content Include="SPSUMLClassDiagram.classdiagram">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="SPSUMLClassDiagram.classdiagram.layout">
-      <SubType>Content</SubType>
-      <DependentUpon>SPSUMLClassDiagram.classdiagram</DependentUpon>
-    </Content>
     <Folder Include="ModelDefinition\" />
     <Content Include="ModelDefinition\SPSModelingProject.uml">
       <SubType>Content</SubType>
