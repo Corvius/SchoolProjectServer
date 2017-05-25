@@ -134,6 +134,72 @@ namespace SchoolProjectServer
 
             return results;
         }
+
+        public bool AddNewStyle(string styleName)
+        {
+            string createTableCommand = string.Format(
+                "CREATE TABLE {0} (" +
+                "Original nvarchar(50) NOT NULL PRIMARY KEY, " +
+                "Replacement nvarchar(50) NOT NULL);", styleName.ToLower());
+
+            string updateTableCommand = string.Format(
+                "INSERT INTO dbo.styles (StyleName, StyleImage) VALUES ('{0}', '');", styleName);
+
+            try
+            {
+                sqlConnection.Open();
+                using (SqlCommand command = new SqlCommand(createTableCommand, sqlConnection))
+                    command.ExecuteNonQuery();
+
+                using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
+                    command.ExecuteNonQuery();
+            }
+            catch (Exception)
+            {
+                this.Log(LogExtension.LogLevels.Error, "Create/Update table command cannot be executed!");
+                return false;
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+
+            this.Log(LogExtension.LogLevels.Info, "Create/Update table command was successfully executed");
+
+            return true;
+        }
+
+        public bool RemoveStyle(string styleName)
+        {
+            string dropTableCommand = string.Format(
+                "DROP TABLE dbo.{0};", styleName.ToLower());
+
+            string updateTableCommand = string.Format(
+                "DELETE FROM dbo.styles WHERE StyleName = '{0}';", styleName);
+
+            try
+            {
+                sqlConnection.Open();
+                using (SqlCommand command = new SqlCommand(dropTableCommand, sqlConnection))
+                    command.ExecuteNonQuery();
+
+                using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
+                    command.ExecuteNonQuery();
+            }
+            catch (Exception)
+            {
+                this.Log(LogExtension.LogLevels.Error, "Drop/Update table command cannot be executed!");
+                return false;
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+
+            this.Log(LogExtension.LogLevels.Info, "Drop/Update table command was successfully executed");
+
+            return true;
+        }
     }
 }
 

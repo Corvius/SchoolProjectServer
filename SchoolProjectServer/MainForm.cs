@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 
 namespace SchoolProjectServer
 {
@@ -89,20 +90,23 @@ namespace SchoolProjectServer
 
             dgwStyleElements.DataSource = selectedStyle;
 
-            DataTable styleNames = tweetStyleData.Tables["StyleNames"];
-            string imageLocation = "";
-            for (int contentRowIndex = 0; contentRowIndex < styleNames.Rows.Count; contentRowIndex++)
+            tweetStyleData = sqlDBConnection.GetTweetStyles();
+
+            string imageLocation = tweetStyleData.Tables["StyleNames"]
+                .Rows
+                .Cast<DataRow>()
+                .Where(row => row["StyleName"].ToString() == styleName)
+                .Select(row => row["StyleImage"].ToString()).FirstOrDefault();
+
+            if (imageLocation != "")
             {
-                if (styleName == styleNames.Rows[contentRowIndex][0].ToString())
-                {
-                    imageLocation = styleNames.Rows[contentRowIndex][1].ToString();
-                    if (imageLocation != "")
-                    {
-                        pbStyleImage.Load(imageLocation);
-                        txtImagePath.Text = imageLocation;
-                    }
-                    break;
-                }
+                pbStyleImage.Load(imageLocation);
+                txtImagePath.Text = imageLocation;
+            }
+            else
+            {
+                pbStyleImage.Image = null;
+                txtImagePath.Text = "";
             }
         }
 
@@ -163,6 +167,20 @@ namespace SchoolProjectServer
             return connected;
         }
 
+        private void RefreshStyleList()
+        {
+            tweetStyleData = sqlDBConnection.GetTweetStyles();
+
+            cbStyles.DataSource = null;
+
+            List<string> styleNames = tweetStyleData.Tables["StyleNames"]
+                .Rows
+                .Cast<DataRow>()
+                .Select(row => row["StyleName"].ToString()).ToList();
+
+            cbStyles.DataSource = styleNames;
+        }
+
         #region Event Handlers
         private void btReloadStyle_Click(object sender, EventArgs e)
         {
@@ -182,7 +200,6 @@ namespace SchoolProjectServer
                 string message = (txtImagePath.Text == string.Empty) ? "<No URL specified>" : txtImagePath.Text;
                 this.Log(LogExtension.LogLevels.Error, "Unable to open image from " + message + "!");
             }
-
         }
 
         private void btRemoveImage_Click(object sender, EventArgs e)
@@ -193,40 +210,54 @@ namespace SchoolProjectServer
 
         private void btAddNewStyle_Click(object sender, EventArgs e)
         {
-            StylePopupForm inputBox = new StylePopupForm();
-            DialogResult inputResult = inputBox.ShowDialog();
-            string styleName = inputBox.StyleName;
-            //if (inputResult == DialogResult.OK)
-            //    if (tweetStyles.Contains(styleName))
-            //    {
-            //        string message = "There is a style, called " + styleName + ".\nDo you want to overwrite it?";
-            //        DialogResult overwriteResult = MessageBox.Show(message, "Overwrite style?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            //        if (overwriteResult == DialogResult.Yes)
-            //            tweetStyles[styleName] = new TweetStyle(styleName);
-            //    }
-            //    else
-            //    {
-            //        tweetStyles.Add(styleName, new TweetStyle(styleName));
-            //        cbStyles.Items.Add(styleName);
-            //        cbStyles.SelectedIndex = 0;
-            //    }
+            string styleName = "";
+            while (true)
+            {
+                StylePopupForm inputBox = new StylePopupForm();
+                DialogResult inputResult = inputBox.ShowDialog();
+                styleName = inputBox.StyleName;
+
+                string nameQuery = tweetStyleData.Tables["StyleNames"]
+                    .Rows
+                    .Cast<DataRow>()
+                    .Where(row => row["StyleName"].ToString() == styleName)
+                    .Select(row => row["StyleName"].ToString()).FirstOrDefault();
+
+                if (nameQuery != null)
+                {
+                    MessageBox.Show("There is already a style called " + styleName);
+                    continue;
+                }
+
+                if (inputResult == DialogResult.Cancel)
+                    return;
+
+                if (inputResult == DialogResult.OK)
+                    break;
+            }
+
+            if (sqlDBConnection.AddNewStyle(styleName))
+            {
+                RefreshStyleList();
+                cbStyles.SelectedIndex = 0;
+            }
         }
 
         private void btRemoveStyle_Click(object sender, EventArgs e)
         {
             string styleName = cbStyles.Items[cbStyles.SelectedIndex].ToString();
-            //if (styleName != string.Empty)
-            //{
-            //    string message = "Are you sure, you want to remove the style, called " + styleName + "?";
-            //    DialogResult removeResult = MessageBox.Show(message, "Remove style?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            //    if (removeResult == DialogResult.Yes && tweetStyles.Contains(styleName))
-            //        tweetStyles.Remove(styleName);
-            //    cbStyles.Items.Remove(styleName);
-            //    cbStyles.SelectedIndex = -1;
-            //    cbStyles.Text = "";
-            //    // TODO: Make a reset method to clear all components
-
-            //}
+            if (styleName != string.Empty)
+            {
+                string message = "Are you sure you want to remove the style '" + styleName + "'?";
+                DialogResult removeResult = MessageBox.Show(message, "Remove style?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (removeResult == DialogResult.Yes)
+                    if (sqlDBConnection.RemoveStyle(styleName))
+                    {
+                        RefreshStyleList();
+                        if (cbStyles.Items.Count > 0)
+                            cbStyles.SelectedIndex = 0;
+                    }
+            }
         }
 
         private void btConnectToDatabase_Click(object sender, EventArgs e)
@@ -237,16 +268,7 @@ namespace SchoolProjectServer
             if (!IsConnectionEstablished)
                 if (CreateConnection(serverURL, serverPort))
                 {
-                    tweetStyleData = sqlDBConnection.GetTweetStyles();
-
-                    DataTable styleNames = tweetStyleData.Tables["StyleNames"];
-
-                    cbStyles.Items.Clear();
-
-                    for (int contentRowIndex = 0; contentRowIndex < styleNames.Rows.Count; contentRowIndex++)
-                    {
-                        cbStyles.Items.Add(styleNames.Rows[contentRowIndex][0].ToString());
-                    }
+                    RefreshStyleList();
 
                     cbStyles.SelectedIndex = 0;
 
@@ -276,7 +298,6 @@ namespace SchoolProjectServer
             string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
             if (styleName != string.Empty)
                 LoadStyleComponents(styleName);
-            Console.WriteLine("CB changed!");
         }
     }
 }
