@@ -1,59 +1,31 @@
-﻿using CustomLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Specialized;
+using System.IO;
 
 namespace SchoolProjectServer
 {
-    class TweetStyle
+    public class TweetStyle
     {
-        public string Name { get; }
-        public string PictureURL { get; }
-        public List<StyleProperty> properties { get; }
+        public string mStyleName { get; }
+        public string mStyleImageURL { get; }
 
-        public TweetStyle(string name, string pictureURL)
+        public TweetStyle(string pStyleName, string pStyleImageURL)
         {
-            properties = new List<StyleProperty>();
-
-            Name = (name == string.Empty) ? "TweetStyle" : name;
-            PictureURL = (pictureURL == null) ? "" : pictureURL;
+            mStyleName = pStyleName;
+            mStyleImageURL = pStyleImageURL;
         }
 
-        public TweetStyle(string name) : this(name, "") { }
-
-        public void AddProperty(string original, string replacement)
+        public byte[] ToByteArray()
         {
-            bool match = false;
-
-            if (original != string.Empty && replacement != string.Empty)
-            {
-                foreach (StyleProperty property in properties)
-                    if (property.Original == original)
-                    {  
-                        match = true;
-                        break;
-                    }
-
-                if (match)
-                    this.Log(LogExtension.LogLevels.Warning, original + " is already among properties", "Events");
-                else
-                    properties.Add(new StyleProperty(original, replacement));
-            }
-        }
-
-        public void ModifyProperty(string original = null, string replacement = null)
-        {
-            foreach (StyleProperty property in properties)
-                if (property.Original == original)
-                    if (replacement != null)
-                    {
-                        this.Log(LogExtension.LogLevels.Info, "Property " + original + " has changed from " + property.Replacement + " to " + replacement, "Events");
-
-                        property.Replacement = replacement;
-                    }
+            MemoryStream lMs = new MemoryStream();
+            byte[] lStyleNameArray = Encoding.ASCII.GetBytes(mStyleName);
+            byte[] lStyleImageURLArray = Encoding.ASCII.GetBytes(mStyleImageURL);
+            lMs.Write(lStyleNameArray, 0, lStyleNameArray.Length);
+            lMs.Write(lStyleImageURLArray, 0, lStyleImageURLArray.Length);
+            return lMs.ToArray();
         }
     }
 }

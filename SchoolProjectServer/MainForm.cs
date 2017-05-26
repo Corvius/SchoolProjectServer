@@ -6,6 +6,8 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net.Sockets;
+using System.Net;
 
 namespace SchoolProjectServer
 {
@@ -13,8 +15,8 @@ namespace SchoolProjectServer
     {
         private const string defaultServerURL = "localhost";
         private const string defaultServerPort = "";
-        private const int maxTweetsToFetch = 10;
-        private int timerInterval = 10;
+        private const int maxTweetsToFetch = 100;
+        private int timerInterval = 30;
 
         private string currentServerURL = defaultServerURL;
         private string currentServerPort = defaultServerPort;
@@ -24,6 +26,7 @@ namespace SchoolProjectServer
         private SQLConnector sqlDBConnection = null;
         private Twitter twitter = new Twitter();
         private BindingSource bsGridBinder = new BindingSource();
+        private TTSConnectionServer connectionServer;
 
         public MainForm()
         {
@@ -61,8 +64,17 @@ namespace SchoolProjectServer
 
             tmrRecheckTweets.Start();
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has started!");
+
+            connectionServer = new TTSConnectionServer();
+            connectionServer.StartListening();
+            //Task.Factory.StartNew(() => { runX(); }).Wait();
         }
 
+        //private void runX()
+        //{
+        //    bool result = connectionServer.StartListening().Result;
+        //}
+        
         private void tmrRecheckTweets_Tick(object sender, EventArgs e)
         {
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has expired! Trying to fetch tweets!");
@@ -81,6 +93,7 @@ namespace SchoolProjectServer
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
             sqlDBConnection.UpdateTweets(tweets);
+            connectionServer.mTweets = tweets;
         }
 
         private void LoadStyleComponents(string styleName)
@@ -108,6 +121,13 @@ namespace SchoolProjectServer
                 pbStyleImage.Image = null;
                 txtImagePath.Text = "";
             }
+
+            List<TweetStyle> styleQuery = tweetStyleData.Tables["StyleNames"]
+                .Rows
+                .Cast<DataRow>()
+                .Select(row => new TweetStyle(row["StyleName"].ToString(), row["StyleImage"].ToString())).ToList();
+            
+            connectionServer.mTweetStyles = styleQuery;
         }
 
         private void EnableStyleComponents()
@@ -312,42 +332,3 @@ namespace SchoolProjectServer
     }
 }
 #endregion
-
-// Welcome to the Graveyard!
-// You may find both trash and treasure in this section for discarded methods. Enjoy!
-/*
-
-        private void btOpenImage_Click(object sender, EventArgs e)
-        {
-            const int MaxImageSize = 200 * 1024; // 200 Kb
-            OpenFileDialog ofd = new OpenFileDialog();
-                        
-            ofd.Filter = "Image Files (*.gif;*.jpg;*.jpeg;*.bmp;*.wmf;*.png)|*.gif;*.jpg;*.jpeg;*.bmp;*.wmf;*.png";
-            ofd.FilterIndex = 1;
-            ofd.Multiselect = false;
-
-            DialogResult dr = DialogResult.None;
-            bool fileExceedsLimit = false;
-            do
-            {
-                dr = ofd.ShowDialog();
-                if (dr == DialogResult.Cancel)
-                    break;
-
-                System.IO.FileInfo fi = new System.IO.FileInfo(ofd.FileName);
-                fileExceedsLimit = fi.Length > MaxImageSize;
-
-                if (fileExceedsLimit)
-                    MessageBox.Show("File size must be less than " + (MaxImageSize / 1024).ToString() + " kbytes", "Oversized file!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-            
-            } while (fileExceedsLimit);
-
-            if (dr == DialogResult.OK)
-            {
-                pbStyleImage.Load(ofd.FileName);
-                txtImagePath.Text = ofd.FileName;
-            }
-        }
-
-
-*/

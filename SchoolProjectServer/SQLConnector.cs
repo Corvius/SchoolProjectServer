@@ -75,19 +75,30 @@ namespace SchoolProjectServer
 
         public bool UpdateTweets(List<Tweet> tweets)
         {
+            bool result = true;
             foreach (Tweet tweet in tweets)
             {
-                //TODO: Write this
+                string insertRowCommand = string.Format(
+                    "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp) VALUES ('{0}', '{1}', '{2}');",
+                    tweet.TweetID, Tweet.Base64Encode(tweet.TweetText), tweet.TweetTimeStamp.ToString("yyyy.MM.dd HH:mm:ss"));
 
+                try
+                {
+                    sqlConnection.Open();
+                    using (SqlCommand command = new SqlCommand(insertRowCommand, sqlConnection))
+                        command.ExecuteNonQuery();
+                }
+                catch (Exception)
+                {
+                    result = false;
+                }
+                finally
+                {
+                    sqlConnection.Close();
+                }
             }
-            SqlCommandBuilder command = new SqlCommandBuilder(dataAdapter);
 
-            //command
-            //TODO: Write update method
-            foreach (var t in tweets)
-                Console.WriteLine(t.ToString());
-
-            return false;
+            return result;
         }
 
         /// <summary>

@@ -23,5 +23,27 @@ namespace SchoolProjectServer
         {
             return "[" + TweetTimeStamp.ToString() + " - " + TweetID.ToString() + "] " + TweetText;
         }
+
+        public static string Base64Encode(string plainText)
+        {
+            if (plainText != string.Empty)
+            {
+                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+                return System.Convert.ToBase64String(plainTextBytes);
+            }
+            else
+                return plainText;
+        }
+
+        public static string Base64Decode(string base64EncodedData)
+        {
+            if (base64EncodedData != string.Empty)
+            {
+                var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+                return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            }
+            else
+                return base64EncodedData;
+        }
     }
 }
