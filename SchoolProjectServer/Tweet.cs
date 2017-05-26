@@ -8,11 +8,11 @@ namespace SchoolProjectServer
 {
     public class Tweet
     {
-        public string TweetID { get; }
+        public Int64 TweetID { get; }
         public string TweetText { get; }
         public DateTime TweetTimeStamp { get; }
 
-        public Tweet(string ID, string text, DateTime timestamp)
+        public Tweet(Int64 ID, string text, DateTime timestamp)
         {
             TweetID = ID;
             TweetText = text;
@@ -21,7 +21,7 @@ namespace SchoolProjectServer
 
         public override string ToString()
         {
-            return "[" + TweetTimeStamp.ToString() + " - " + TweetID + "] " + TweetText;
+            return "[" + TweetTimeStamp.ToString() + " - " + TweetID.ToString() + "] " + TweetText;
         }
     }
 }

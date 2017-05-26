@@ -20,6 +20,8 @@ namespace SchoolProjectServer
         private SqlConnection sqlConnection;
         private SqlDataAdapter dataAdapter;
 
+        public DataSet tweetStyleData;
+
         /// <summary>
         /// Initializes the object and builds the connection string
         /// </summary>
@@ -42,11 +44,11 @@ namespace SchoolProjectServer
 
                 sqlConnection = new SqlConnection(connectionString);
                 dataAdapter = new SqlDataAdapter();
+
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // TODO: Log error
-                Console.WriteLine(ex.Message);
+                this.Log(LogExtension.LogLevels.Error, "Unable to build and apply ConnectionString!");
             }
         }
 
@@ -73,6 +75,14 @@ namespace SchoolProjectServer
 
         public bool UpdateTweets(List<Tweet> tweets)
         {
+            foreach (Tweet tweet in tweets)
+            {
+                //TODO: Write this
+
+            }
+            SqlCommandBuilder command = new SqlCommandBuilder(dataAdapter);
+
+            //command
             //TODO: Write update method
             foreach (var t in tweets)
                 Console.WriteLine(t.ToString());
@@ -201,11 +211,19 @@ namespace SchoolProjectServer
             return true;
         }
 
-        public bool UpdateStyle(DataSet styleData)
+        public bool UpdateStyle(DataTable styleData)
         {
-            foreach (DataTable table in styleData.Tables)
-                foreach (DataRow row in table.Rows)
-                    Console.WriteLine(row[0].ToString());
+            try
+            {
+                dataAdapter.Update(styleData);
+            }
+            catch
+            {
+                this.Log(LogExtension.LogLevels.Error, "Unable to update server!");
+                return false;
+            }
+
+            this.Log(LogExtension.LogLevels.Info, "Server was successfully updated");
             return true;
         }
     }

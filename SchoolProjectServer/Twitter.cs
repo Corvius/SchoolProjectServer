@@ -39,9 +39,10 @@ namespace SchoolProjectServer
             if (enumerableTweets == null)
                 return null;
 
+            // For json field reference, check https://dev.twitter.com/overview/api/tweets
             var query = enumerableTweets
                 .Select(value => new {
-                    id = (string)value["id_str"].ToString(),
+                    id = (Int64)value["id"],
                     text = (string)value["text"].ToString(),
                     time = (string)value["created_at"].ToString()
                 });

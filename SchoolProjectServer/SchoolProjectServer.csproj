@@ -48,7 +48,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomLog.cs" />
-    <Compile Include="DataHolder.cs" />
     <Compile Include="LineSeparator.cs">
       <SubType>UserControl</SubType>
     </Compile>

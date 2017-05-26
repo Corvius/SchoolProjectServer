@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SchoolProjectServer
 {
@@ -13,7 +14,7 @@ namespace SchoolProjectServer
         private const string defaultServerURL = "localhost";
         private const string defaultServerPort = "";
         private const int maxTweetsToFetch = 10;
-        private int timerInterval = 30;
+        private int timerInterval = 10;
 
         private string currentServerURL = defaultServerURL;
         private string currentServerPort = defaultServerPort;
@@ -67,9 +68,11 @@ namespace SchoolProjectServer
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has expired! Trying to fetch tweets!");
 
             if (IsConnectionEstablished)
+            {
                 //Start checking on a separate thread
-                //Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
+                Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
                 this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
+            }
             else
                 this.Log(LogExtension.LogLevels.Warning, "DB connection is not available, skipping tweet update!");
         }
@@ -78,11 +81,6 @@ namespace SchoolProjectServer
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
             sqlDBConnection.UpdateTweets(tweets);
-        }
-
-        private void ResetStylecomponents()
-        {
-            //TODO: Write a reset function!
         }
 
         private void LoadStyleComponents(string styleName)
@@ -304,14 +302,12 @@ namespace SchoolProjectServer
 
         private void btUpdateServer_Click(object sender, EventArgs e)
         {
-            //sqlDBConnection.UpdateStyle((DataSet)bsGridBinder.DataSource);
+            sqlDBConnection.UpdateStyle((DataTable)bsGridBinder.DataSource);
         }
 
         private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             bsGridBinder.EndEdit();
-            //string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
-            //tweetStyleData.Tables[styleName] = (DataTable)bsGridBinder.DataSource;
         }
     }
 }
