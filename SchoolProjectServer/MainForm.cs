@@ -66,6 +66,8 @@ namespace SchoolProjectServer
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has started!");
 
             connectionServer = new TTSConnectionServer();
+            btConnectToDatabase.PerformClick();
+            
             connectionServer.StartListening();
             //Task.Factory.StartNew(() => { runX(); }).Wait();
         }
