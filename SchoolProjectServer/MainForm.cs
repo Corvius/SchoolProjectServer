@@ -22,6 +22,7 @@ namespace SchoolProjectServer
         private DataSet tweetStyleData;
         private SQLConnector sqlDBConnection = null;
         private Twitter twitter = new Twitter();
+        private BindingSource bsGridBinder = new BindingSource();
 
         public MainForm()
         {
@@ -88,7 +89,8 @@ namespace SchoolProjectServer
         {
             DataTable selectedStyle = tweetStyleData.Tables[styleName];
 
-            dgwStyleElements.DataSource = selectedStyle;
+            bsGridBinder.DataSource = selectedStyle;
+            dgwStyleElements.DataSource = bsGridBinder;
 
             tweetStyleData = sqlDBConnection.GetTweetStyles();
 
@@ -298,6 +300,18 @@ namespace SchoolProjectServer
             string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
             if (styleName != string.Empty)
                 LoadStyleComponents(styleName);
+        }
+
+        private void btUpdateServer_Click(object sender, EventArgs e)
+        {
+            //sqlDBConnection.UpdateStyle((DataSet)bsGridBinder.DataSource);
+        }
+
+        private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            bsGridBinder.EndEdit();
+            //string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
+            //tweetStyleData.Tables[styleName] = (DataTable)bsGridBinder.DataSource;
         }
     }
 }

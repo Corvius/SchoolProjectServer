@@ -254,6 +254,7 @@
             this.dgwStyleElements.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.dgwStyleElements.Size = new System.Drawing.Size(346, 483);
             this.dgwStyleElements.TabIndex = 12;
+            this.dgwStyleElements.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgwStyleElements_CellEndEdit);
             // 
             // btUpdateServer
             // 
@@ -265,6 +266,7 @@
             this.btUpdateServer.TabIndex = 13;
             this.btUpdateServer.Text = "Update Database Server";
             this.btUpdateServer.UseVisualStyleBackColor = true;
+            this.btUpdateServer.Click += new System.EventHandler(this.btUpdateServer_Click);
             // 
             // btReloadStyle
             // 

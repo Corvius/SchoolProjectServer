@@ -200,6 +200,14 @@ namespace SchoolProjectServer
 
             return true;
         }
+
+        public bool UpdateStyle(DataSet styleData)
+        {
+            foreach (DataTable table in styleData.Tables)
+                foreach (DataRow row in table.Rows)
+                    Console.WriteLine(row[0].ToString());
+            return true;
+        }
     }
 }
 
