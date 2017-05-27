@@ -17,7 +17,7 @@ namespace SchoolProjectServer
         private const string defaultServerURL = "localhost";
         private const string defaultServerPort = "";
         private const int maxTweetsToFetch = 100;
-        private int timerInterval = 30;
+        private int timerInterval = 3000;
 
         private string currentServerURL = defaultServerURL;
         private string currentServerPort = defaultServerPort;
@@ -25,10 +25,11 @@ namespace SchoolProjectServer
         private Thread listenerThread;
 
         private DataSet tweetStyleData;
-        private SQLConnector sqlDBConnection = null;
         private Twitter twitter = new Twitter();
         private BindingSource bsGridBinder = new BindingSource();
         private TTSConnectionServer connectionServer;
+
+        internal SQLConnector sqlDBConnection = null;
 
         public MainForm()
         {
@@ -103,7 +104,6 @@ namespace SchoolProjectServer
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
             sqlDBConnection.UpdateTweets(tweets);
-            connectionServer.mTweets = sqlDBConnection.RetrieveTweets(5);
         }
 
         private void LoadStyleComponents(string styleName)

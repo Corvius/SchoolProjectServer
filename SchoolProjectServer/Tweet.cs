@@ -8,15 +8,19 @@ namespace SchoolProjectServer
 {
     public class Tweet
     {
+        public int TweetUpvotes { get; private set; }
+        public int TweetDownvotes { get; private set; }
         public Int64 TweetID { get; }
         public string TweetText { get; private set; }
         public DateTime TweetTimeStamp { get; }
 
-        public Tweet(Int64 ID, string text, DateTime timestamp)
+        public Tweet(Int64 ID, string text, DateTime timestamp, int Upvotes, int Downvotes)
         {
             TweetID = ID;
             TweetText = text;
             TweetTimeStamp = timestamp;
+            TweetUpvotes = Upvotes;
+            TweetDownvotes = Downvotes;
         }
 
         internal void Updatetext(string newText)
@@ -50,5 +54,16 @@ namespace SchoolProjectServer
             else
                 return base64EncodedData;
         }
+
+        public void Upvote()
+        {
+            TweetUpvotes++;
+        }
+
+        public void Downvote()
+        {
+            TweetDownvotes++;
+        }
+
     }
 }

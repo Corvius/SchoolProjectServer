@@ -51,7 +51,7 @@ namespace SchoolProjectServer
 
             foreach (var tweet in query)
             {
-                tweets.Add(new Tweet(tweet.id, tweet.text, DateTime.ParseExact(tweet.time, "ddd MMM dd H:mm:ss K yyyy", System.Globalization.CultureInfo.InvariantCulture)));
+                tweets.Add(new Tweet(tweet.id, tweet.text, DateTime.ParseExact(tweet.time, "ddd MMM dd H:mm:ss K yyyy", System.Globalization.CultureInfo.InvariantCulture), 0, 0));
             }
             
             return tweets;

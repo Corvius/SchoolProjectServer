@@ -103,7 +103,6 @@ namespace SchoolProjectServer
         MainForm mOwner;
         public List<TweetStyle> mTweetStyles;
         public List<Tweet> mTweets;
-
         // Events
 
         // ManualResetEvent instances signal completion.  
@@ -136,13 +135,6 @@ namespace SchoolProjectServer
 
         public void StartListening()
         {
-            UpdateTweetsWithStyle("Fable");
-
-            foreach (var x in mTweets)
-                Console.WriteLine(x.TweetID.ToString() + " - " + x.TweetText);
-
-            Application.Exit();
-
             mLastStatus = "Building local endpoint";
             try
             {
@@ -253,12 +245,14 @@ namespace SchoolProjectServer
         {
             try
             {
+                Console.WriteLine("SendCallBack");
                 Socket lHandler = (Socket)AR.AsyncState;
                 int lSentBytes = lHandler.EndSend(AR);
                 mLastStatus = "Sent " + lSentBytes.ToString() + " bytes.";
 
                 lHandler.Shutdown(SocketShutdown.Both);
                 lHandler.Close();
+                ESendDone.Set();
             }
             catch (Exception e)
             {
@@ -299,18 +293,29 @@ namespace SchoolProjectServer
             }
             lSw.Flush();
             SendData(pSocket, lMs);
-            EReceiveDone.WaitOne();
+            ESendDone.WaitOne();
         }
 
-        public void SendTweets(Socket pSocket)
+        public void SendTweets(Socket pSocket,string pStyle)
         {
+            UpdateTweetsWithStyle(pStyle);
+
             MemoryStream lMs = new MemoryStream();
             StreamWriter lSw = new StreamWriter(lMs);
             lSw.WriteLine(Envelope.protocolVersion);
             lSw.WriteLine(PROTOCOL_VERSION);
             lSw.WriteLine(Envelope.tweetTweets);
+            lSw.WriteLine(mTweets.Count);
+            foreach (var Tweet in mTweets)
+            {
+                lSw.WriteLine(Tweet.TweetID);
+                lSw.WriteLine(Tweet.TweetText);
+                lSw.WriteLine(Tweet.TweetTimeStamp);
+                lSw.WriteLine(Tweet.TweetUpvotes);
+                lSw.WriteLine(Tweet.TweetDownvotes);
+            }
             SendData(pSocket, lMs);
-            EReceiveDone.WaitOne();
+            ESendDone.WaitOne();
         }
 
         public void SendEOT(Socket pSocket)
@@ -329,7 +334,7 @@ namespace SchoolProjectServer
 
             try
             {
-                pSocket.BeginSend(lBuffer, 0, lBuffer.Length, SocketFlags.None, SendCallback, null);
+                pSocket.BeginSend(lBuffer, 0, lBuffer.Length, SocketFlags.None, SendCallback, pSocket);
                 ESendDone.WaitOne();
             }
             catch (SocketException ex)
@@ -385,6 +390,7 @@ namespace SchoolProjectServer
                                 {
                                     mLastStatus = "Received request for StyleList, sending it now.";
                                     SendStyleList(pSocket);
+                                    return;
                                 }
                                 break;
                             }
@@ -394,12 +400,20 @@ namespace SchoolProjectServer
                                 {
                                     lServerState = ServerState.stateProtocolError;
                                     mLastStatus = "Tweets received before comparing protocol versions.";
-                                    break;
                                 }
                                 else
                                 {
                                     mLastStatus = "Received request for Tweets, sending it now.";
-                                    SendTweets(pSocket);
+                                    if ((lLine = reader.ReadLine()) != null)
+                                    {
+                                        SendTweets(pSocket,lLine);
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        lServerState = ServerState.stateProtocolError;
+                                        mLastStatus = "Protocol version mismatch. Expecting " + PROTOCOL_VERSION.ToString() + " and got " + lLine;
+                                    }
                                 }
                                 break;
                             }
@@ -422,6 +436,8 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
+            List<Tweet> tweets = mOwner.sqlDBConnection.RetrieveTweets(5);
+
             TweetStyle selectedStyle = null;
             foreach (TweetStyle style in mTweetStyles)
                 if (style.mStyleName == pStyleName)
@@ -430,7 +446,7 @@ namespace SchoolProjectServer
                     break;
                 }
 
-            foreach (Tweet tweet in mTweets)
+            foreach (Tweet tweet in tweets)
             {
                 tweet.Updatetext(Tweet.Base64Decode(tweet.TweetText));
 
@@ -442,6 +458,8 @@ namespace SchoolProjectServer
                     tweet.Updatetext(result);
                 }
             }
+
+            mTweets = tweets;
         }
     }
 }

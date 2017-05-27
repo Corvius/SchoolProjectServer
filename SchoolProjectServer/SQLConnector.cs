@@ -77,8 +77,9 @@ namespace SchoolProjectServer
             foreach (Tweet tweet in tweets)
             {
                 string insertRowCommand = string.Format(
-                    "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp) VALUES ('{0}', '{1}', '{2}');",
-                    tweet.TweetID, Tweet.Base64Encode(tweet.TweetText), tweet.TweetTimeStamp.ToString("yyyy.MM.dd HH:mm:ss"));
+                    "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp, tweetUpVote, tweetDownVote) " +
+                        "VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');",
+                    tweet.TweetID, Tweet.Base64Encode(tweet.TweetText), tweet.TweetTimeStamp.ToString("yyyy.MM.dd HH:mm:ss"), tweet.TweetUpvotes, tweet.TweetDownvotes);
 
                 try
                 {
@@ -114,7 +115,9 @@ namespace SchoolProjectServer
                 .Select(row => new Tweet(
                     (long)row["tweetID"],
                     (string)row["tweetText"],
-                    DateTime.Parse(row["tweetTimeStamp"].ToString()))).ToList();
+                    DateTime.Parse(row["tweetTimeStamp"].ToString()),
+                    (int)row["tweetUpVote"],
+                    (int)row["tweetDownVote"])).ToList();
 
             return tweetQuery;
         }
