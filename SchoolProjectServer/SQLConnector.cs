@@ -20,8 +20,6 @@ namespace SchoolProjectServer
         private SqlConnection sqlConnection;
         private SqlDataAdapter dataAdapter;
 
-        public DataSet tweetStyleData;
-
         /// <summary>
         /// Initializes the object and builds the connection string
         /// </summary>
@@ -99,6 +97,26 @@ namespace SchoolProjectServer
             }
 
             return result;
+        }
+
+        public List<Tweet> RetrieveTweets(int count)
+        {
+            List<Tweet> results = new List<Tweet>();
+
+            string selectTweetsCommand = string.Format(
+                "SELECT TOP {0} * FROM dbo.tweets ORDER BY tweetTimeStamp DESC;", count.ToString());
+
+            DataTable tweets = SelectData(selectTweetsCommand, "Tweets");
+
+            List<Tweet> tweetQuery = tweets
+                .Rows
+                .Cast<DataRow>()
+                .Select(row => new Tweet(
+                    (long)row["tweetID"],
+                    (string)row["tweetText"],
+                    DateTime.Parse(row["tweetTimeStamp"].ToString()))).ToList();
+
+            return tweetQuery;
         }
 
         /// <summary>

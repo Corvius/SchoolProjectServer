@@ -44,6 +44,7 @@
             this.dgwStyleElements = new System.Windows.Forms.DataGridView();
             this.btUpdateServer = new System.Windows.Forms.Button();
             this.btReloadStyle = new System.Windows.Forms.Button();
+            this.lineSeparator1 = new SchoolProjectServer.LineSeparator();
             this.label3 = new System.Windows.Forms.Label();
             this.pbStyleImage = new System.Windows.Forms.PictureBox();
             this.txtImagePath = new System.Windows.Forms.TextBox();
@@ -51,7 +52,6 @@
             this.btResetConnectionFields = new System.Windows.Forms.Button();
             this.btClearImage = new System.Windows.Forms.Button();
             this.tmrRecheckTweets = new System.Windows.Forms.Timer(this.components);
-            this.lineSeparator1 = new SchoolProjectServer.LineSeparator();
             this.tlpMainLayout.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgwStyleElements)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbStyleImage)).BeginInit();
@@ -280,6 +280,17 @@
             this.btReloadStyle.UseVisualStyleBackColor = true;
             this.btReloadStyle.Click += new System.EventHandler(this.btReloadStyle_Click);
             // 
+            // lineSeparator1
+            // 
+            this.tlpMainLayout.SetColumnSpan(this.lineSeparator1, 7);
+            this.lineSeparator1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lineSeparator1.Location = new System.Drawing.Point(11, 67);
+            this.lineSeparator1.MaximumSize = new System.Drawing.Size(2000, 2);
+            this.lineSeparator1.MinimumSize = new System.Drawing.Size(0, 2);
+            this.lineSeparator1.Name = "lineSeparator1";
+            this.lineSeparator1.Size = new System.Drawing.Size(562, 2);
+            this.lineSeparator1.TabIndex = 15;
+            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -354,17 +365,6 @@
             this.tmrRecheckTweets.Interval = 3000;
             this.tmrRecheckTweets.Tick += new System.EventHandler(this.tmrRecheckTweets_Tick);
             // 
-            // lineSeparator1
-            // 
-            this.tlpMainLayout.SetColumnSpan(this.lineSeparator1, 7);
-            this.lineSeparator1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lineSeparator1.Location = new System.Drawing.Point(11, 67);
-            this.lineSeparator1.MaximumSize = new System.Drawing.Size(2000, 2);
-            this.lineSeparator1.MinimumSize = new System.Drawing.Size(0, 2);
-            this.lineSeparator1.Name = "lineSeparator1";
-            this.lineSeparator1.Size = new System.Drawing.Size(562, 2);
-            this.lineSeparator1.TabIndex = 15;
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -375,6 +375,7 @@
             this.MinimumSize = new System.Drawing.Size(600, 600);
             this.Name = "MainForm";
             this.Text = "TTS Server";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.tlpMainLayout.ResumeLayout(false);
             this.tlpMainLayout.PerformLayout();

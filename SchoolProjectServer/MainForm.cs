@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
+using System.Threading;
 
 namespace SchoolProjectServer
 {
@@ -21,6 +22,7 @@ namespace SchoolProjectServer
         private string currentServerURL = defaultServerURL;
         private string currentServerPort = defaultServerPort;
         private bool IsConnectionEstablished = false;
+        private Thread listenerThread;
 
         private DataSet tweetStyleData;
         private SQLConnector sqlDBConnection = null;
@@ -65,17 +67,23 @@ namespace SchoolProjectServer
             tmrRecheckTweets.Start();
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has started!");
 
-            connectionServer = new TTSConnectionServer();
+            connectionServer = new TTSConnectionServer(this);
+
+            // TODO: Fix multithreading and remove these two lines
             btConnectToDatabase.PerformClick();
+            tmrRecheckTweets_Tick(this, new EventArgs());
+
+            //connectionServer.StartListening();
+            listenerThread = new Thread(connectionServer.StartListening);
+            listenerThread.Start();
             
-            connectionServer.StartListening();
             //Task.Factory.StartNew(() => { runX(); }).Wait();
         }
 
-        //private void runX()
-        //{
-        //    bool result = connectionServer.StartListening().Result;
-        //}
+        private void runX()
+        {
+            connectionServer.StartListening();
+        }
         
         private void tmrRecheckTweets_Tick(object sender, EventArgs e)
         {
@@ -95,7 +103,7 @@ namespace SchoolProjectServer
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
             sqlDBConnection.UpdateTweets(tweets);
-            connectionServer.mTweets = tweets;
+            connectionServer.mTweets = sqlDBConnection.RetrieveTweets(5);
         }
 
         private void LoadStyleComponents(string styleName)
@@ -201,6 +209,16 @@ namespace SchoolProjectServer
                 .Select(row => row["StyleName"].ToString()).ToList();
 
             cbStyles.DataSource = styleNames;
+        }
+
+        internal List<StyleProperty> GetStyleProperties(string styleName)
+        {
+            List<StyleProperty> properties = tweetStyleData.Tables[styleName]
+                .Rows
+                .Cast<DataRow>()
+                .Select(row => new StyleProperty(row["Original"].ToString(), row["Replacement"].ToString())).ToList();
+
+            return properties;
         }
 
         #region Event Handlers
@@ -330,6 +348,11 @@ namespace SchoolProjectServer
         private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             bsGridBinder.EndEdit();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            listenerThread.Join();
         }
     }
 }

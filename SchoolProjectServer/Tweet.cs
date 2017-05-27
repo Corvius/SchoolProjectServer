@@ -9,7 +9,7 @@ namespace SchoolProjectServer
     public class Tweet
     {
         public Int64 TweetID { get; }
-        public string TweetText { get; }
+        public string TweetText { get; private set; }
         public DateTime TweetTimeStamp { get; }
 
         public Tweet(Int64 ID, string text, DateTime timestamp)
@@ -17,6 +17,11 @@ namespace SchoolProjectServer
             TweetID = ID;
             TweetText = text;
             TweetTimeStamp = timestamp;
+        }
+
+        internal void Updatetext(string newText)
+        {
+            TweetText = newText;
         }
 
         public override string ToString()

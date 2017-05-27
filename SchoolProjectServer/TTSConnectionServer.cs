@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 // This class manages the connection between TTS Client and Server
 // The implementation is to be used on both sides to maintain integrity
@@ -99,13 +100,14 @@ namespace SchoolProjectServer
         // Variables
         IPEndPoint mIPEndPoint;
         string mLastStatus;
+        MainForm mOwner;
         public List<TweetStyle> mTweetStyles;
         public List<Tweet> mTweets;
 
         // Events
 
         // ManualResetEvent instances signal completion.  
-        private static ManualResetEvent EConnectDone =  new ManualResetEvent(false);
+        private static ManualResetEvent EConnectDone = new ManualResetEvent(false);
         private static ManualResetEvent ESendDone = new ManualResetEvent(false);
         private static ManualResetEvent EReceiveDone = new ManualResetEvent(false);
 
@@ -125,14 +127,22 @@ namespace SchoolProjectServer
         }
 
         // Constructors
-        public TTSConnectionServer()
+        public TTSConnectionServer(MainForm pOwner)
         {
             mTweetStyles = new List<TweetStyle>();
             mTweets = new List<Tweet>();
+            mOwner = pOwner;
         }
 
         public void StartListening()
         {
+            UpdateTweetsWithStyle("Fable");
+
+            foreach (var x in mTweets)
+                Console.WriteLine(x.TweetID.ToString() + " - " + x.TweetText);
+
+            Application.Exit();
+
             mLastStatus = "Building local endpoint";
             try
             {
@@ -164,7 +174,7 @@ namespace SchoolProjectServer
                 {
                     lListenerSocket.Bind(mIPEndPoint);
                     lListenerSocket.Listen(1);
-                    
+
                     //EConnectDone.WaitOne(); ??
                     while (true)
                     {
@@ -179,7 +189,7 @@ namespace SchoolProjectServer
 
                         // Wait until a connection is made before continuing.  
                         //Application.DoEvents(); Memory-thief
-                        allDone.WaitOne();
+                        allDone.WaitOne(new TimeSpan(0, 0, 10));
                     }
 
                 }
@@ -348,11 +358,15 @@ namespace SchoolProjectServer
                     {
                         case (byte)Envelope.protocolVersion:
                             {
-                                if ((lLine = reader.ReadLine()) != null) {
-                                    if (0 == lLine.CompareTo(PROTOCOL_VERSION.ToString())) {
+                                if ((lLine = reader.ReadLine()) != null)
+                                {
+                                    if (0 == lLine.CompareTo(PROTOCOL_VERSION.ToString()))
+                                    {
                                         lProtocolVersionInOrder = true;
                                     }
-                                } else {
+                                }
+                                else
+                                {
                                     lServerState = ServerState.stateProtocolError;
                                     mLastStatus = "Protocol version mismatch. Expecting " + PROTOCOL_VERSION.ToString() + " and got " + lLine;
                                     break;
@@ -366,7 +380,8 @@ namespace SchoolProjectServer
                                     lServerState = ServerState.stateProtocolError;
                                     mLastStatus = "TweetStyleList received before comparing protocol versions.";
                                     break;
-                                } else
+                                }
+                                else
                                 {
                                     mLastStatus = "Received request for StyleList, sending it now.";
                                     SendStyleList(pSocket);
@@ -380,7 +395,8 @@ namespace SchoolProjectServer
                                     lServerState = ServerState.stateProtocolError;
                                     mLastStatus = "Tweets received before comparing protocol versions.";
                                     break;
-                                } else
+                                }
+                                else
                                 {
                                     mLastStatus = "Received request for Tweets, sending it now.";
                                     SendTweets(pSocket);
@@ -400,6 +416,30 @@ namespace SchoolProjectServer
                     {
                         break;
                     }
+                }
+            }
+        }
+
+        private void UpdateTweetsWithStyle(string pStyleName)
+        {
+            TweetStyle selectedStyle = null;
+            foreach (TweetStyle style in mTweetStyles)
+                if (style.mStyleName == pStyleName)
+                {
+                    selectedStyle = style;
+                    break;
+                }
+
+            foreach (Tweet tweet in mTweets)
+            {
+                tweet.Updatetext(Tweet.Base64Decode(tweet.TweetText));
+
+                foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
+                {
+                    string replacePattern = @"\b" + property.Original + @"\b";
+                    string result = Regex.Replace(tweet.TweetText, replacePattern, property.Replacement);
+
+                    tweet.Updatetext(result);
                 }
             }
         }
