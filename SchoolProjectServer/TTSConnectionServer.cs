@@ -97,13 +97,14 @@ namespace SchoolProjectServer
         private const long PROTOCOL_VERSION = 0xA000;
         private const int SERVER_LIMIT = 8;
         private const string EOF_STRING = "<EOF>";
+        private const int TWEETS_TO_SEND = 5;
 
         // Variables
         IPEndPoint mIPEndPoint;
         string mLastStatus;
         MainForm mOwner;
-        public List<TweetStyle> mTweetStyles;
-        public List<Tweet> mTweets;
+        List<TweetStyle> mTweetStyles;
+        List<Tweet> mTweets;
         // Events
 
         // ManualResetEvent instances signal completion.  
@@ -321,6 +322,7 @@ namespace SchoolProjectServer
             lSw.WriteLine(mTweets.Count);
             foreach (var Tweet in mTweets)
             {
+                Console.WriteLine(Tweet.Base64Decode(Tweet.TweetText));
                 lSw.WriteLine(Tweet.TweetID);
                 lSw.WriteLine(Tweet.TweetText);
                 lSw.WriteLine(Tweet.TweetTimeStamp);
@@ -448,9 +450,15 @@ namespace SchoolProjectServer
             }
         }
 
+        internal void UpdateTweetStyles(List<TweetStyle> pTweetStyles)
+        {
+            if (pTweetStyles != null)
+                mTweetStyles = pTweetStyles;
+        }
+
         private void UpdateTweetsWithStyle(string pStyleName)
         {
-            List<Tweet> tweets = mOwner.sqlDBConnection.RetrieveTweets(5);
+            List<Tweet> tweets = mOwner.sqlDBConnection.GetTweets(TWEETS_TO_SEND);
 
             TweetStyle selectedStyle = null;
             foreach (TweetStyle style in mTweetStyles)
@@ -462,19 +470,22 @@ namespace SchoolProjectServer
 
             foreach (Tweet tweet in tweets)
             {
-                tweet.Updatetext(Tweet.Base64Decode(tweet.TweetText));
+                string decodedTweet = Tweet.Base64Decode(tweet.TweetText);
 
                 foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
                 {
-                    string replacePattern = @"\b" + property.Original + @"\b";
-                    string result = Regex.Replace(tweet.TweetText, replacePattern, property.Replacement);
+                    // Exact search, narrow search pattern
+                    //string replacePattern = @"\b" + property.Original + @"\b";
+                    //string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement);
 
-                    tweet.Updatetext(result);
+                    // Loose search, wide search pattern
+                    string replacePattern = property.Original; // Partial match
+                    string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
 
+                    decodedTweet = result;
                 }
-                tweet.Updatetext(Tweet.Base64Encode(tweet.TweetText));
+                tweet.Updatetext(Tweet.Base64Encode(decodedTweet));
             }
-
             mTweets = tweets;
         }
     }

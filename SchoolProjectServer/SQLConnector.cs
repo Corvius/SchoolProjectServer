@@ -22,16 +22,11 @@ namespace SchoolProjectServer
         internal readonly static string defaultServerURL = "89.132.188.93";
         internal readonly static string defaultServerPort = ""; // 1433
 
-        internal bool IsConnectionAvailable
-        {
-            get { return CheckConnection() != ConnectionState.Broken; }
-        }
-
-        public SQLConnector()
+        internal SQLConnector()
         {
         }
 
-        public bool BuildConnection(string serverURL, string serverPort)
+        internal bool BuildConnection(string serverURL, string serverPort)
         {
             string URL = (serverURL == string.Empty) ? SQLConnector.defaultServerURL : serverURL;
             string Port = (serverPort == string.Empty) ? SQLConnector.defaultServerPort : serverPort;
@@ -64,53 +59,21 @@ namespace SchoolProjectServer
             return true;
         }
 
-        public ConnectionState CheckConnection()
+        internal bool UpdateTweets(List<Tweet> tweets)
         {
-            try
-            {
-                if (sqlConnection == null)
-                    sqlConnection = new SqlConnection(connectionString);
+            DataTable rawTweetData = RetrieveTweetsFromSql(0);
 
-                sqlConnection.Open();
-            }
-            catch (Exception)
-            {
-                this.Log(LogExtension.LogLevels.Error, "Unable to open a connection to tweet database!");
-            }
-            finally
-            {
-                if (sqlConnection != null && sqlConnection.State == ConnectionState.Open)
-                    sqlConnection.Close();
-            }
-            return sqlConnection.State;
-        }
+            List<long> existingIDs = rawTweetData
+                .Rows
+                .Cast<DataRow>()
+                .Select(row => (long)row["tweetID"]).ToList();
 
-        /// <summary>
-        /// Test that the server is connected
-        /// </summary>
-        /// <param name="connectionString">The connection string</param>
-        /// <returns>true if the connection is opened</returns>
-        public bool IsServerConnected()
-        {
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    return true;
-                }
-            }
-            catch (SqlException)
-            {
-                return false;
-            }
-        }
-
-        public bool UpdateTweets(List<Tweet> tweets)
-        {
             bool result = true;
             foreach (Tweet tweet in tweets)
             {
+                if (existingIDs.Contains(tweet.TweetID))
+                    continue;
+
                 string insertRowCommand = string.Format(
                     "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp, tweetUpVote, tweetDownVote) " +
                         "VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');",
@@ -135,14 +98,19 @@ namespace SchoolProjectServer
             return result;
         }
 
-        public List<Tweet> RetrieveTweets(int count)
+        internal DataTable RetrieveTweetsFromSql(int tweetCount)
         {
-            List<Tweet> results = new List<Tweet>();
+            string count = (tweetCount > 0) ? "TOP " + tweetCount.ToString() + " *" : "*"; 
 
             string selectTweetsCommand = string.Format(
-                "SELECT TOP {0} * FROM dbo.tweets ORDER BY tweetTimeStamp DESC;", count.ToString());
+                "SELECT {0} FROM dbo.tweets ORDER BY tweetTimeStamp DESC;", count);
 
-            DataTable tweets = SelectData(selectTweetsCommand, "Tweets");
+            return SelectData(selectTweetsCommand, "Tweets");
+        }
+
+        internal List<Tweet> GetTweets(int count)
+        {
+            DataTable tweets = RetrieveTweetsFromSql(count);
 
             List<Tweet> tweetQuery = tweets
                 .Rows

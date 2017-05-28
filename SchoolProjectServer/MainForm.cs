@@ -17,7 +17,7 @@ namespace SchoolProjectServer
     public partial class MainForm : Form
     {
         private const int maxTweetsToFetch = 100;
-        private int timerInterval = 3000;
+        private int timerInterval = 10; // 300
 
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
@@ -152,7 +152,7 @@ namespace SchoolProjectServer
                 .Cast<DataRow>()
                 .Select(row => new TweetStyle(row["StyleName"].ToString(), row["StyleImage"].ToString())).ToList();
             
-            connectionServer.mTweetStyles = styleQuery;
+            connectionServer.UpdateTweetStyles(styleQuery);
         }
 
         private void EnableStyleComponents()
@@ -356,7 +356,7 @@ namespace SchoolProjectServer
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            listenerThread.Interrupt();
+            listenerThread.Abort();
         }
     }
 }
