@@ -62,15 +62,16 @@ namespace SchoolProjectServer
 
         private void UpdateServerAddress()
         {
-            string checkUrl = "http://checkip.dyndns.org";
-            string resultXML = new WebClient().DownloadString(checkUrl);
-            string matchPattern = @"([\d\.]+)";
+            string selfIP = new WebClient().DownloadString("http://distantworlds.org/tts/whatsmyip.php");
+            string remoteIP = new WebClient().DownloadString("http://distantworlds.org/tts/getaddress.php");
 
-            string selfIP = Regex.Match(resultXML, matchPattern, RegexOptions.Multiline).Groups[1].ToString();
-            string setIpUrl = string.Format("http://distantworlds.org/tts/setaddress.php?address={0}", selfIP);
+            if (selfIP != remoteIP)
+            {
+                string setIpUrl = string.Format("http://distantworlds.org/tts/setaddress.php?address={0}", selfIP);
 
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(setIpUrl);
-            WebResponse res = request.GetResponse();
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(setIpUrl);
+                WebResponse res = request.GetResponse();
+            }
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
