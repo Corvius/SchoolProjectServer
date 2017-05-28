@@ -8,46 +8,81 @@ using CustomLog;
 
 namespace SchoolProjectServer
 {
-    /// <summary>
-    /// Handles communication and dataconversion between the application and the database
-    /// </summary>
     class SQLConnector
     {
-        /// <summary>
-        /// Holds the necessary data to connect to the database
-        /// </summary>
-        private readonly string connectionString;
-        private SqlConnection sqlConnection;
-        private SqlDataAdapter dataAdapter;
 
-        /// <summary>
-        /// Initializes the object and builds the connection string
-        /// </summary>
-        public SQLConnector(string serverURL, string serverPort)
+        private SqlConnection sqlConnection;
+        private SqlDataAdapter sqlDataAdapter;
+        private string connectionString;
+
+        private readonly string dbName = "TTS_DB";
+        private readonly string dbUser = "TTS_APP";
+        private readonly string dbPass = "GetTrumpTweets";
+
+        internal readonly static string defaultServerURL = "localhost";
+        internal readonly static string defaultServerPort = ""; // 1433
+
+        internal bool IsConnectionAvailable
+        {
+            get { return CheckConnection() != ConnectionState.Broken; }
+        }
+
+        public SQLConnector()
+        {
+        }
+
+        public bool BuildConnection(string serverURL, string serverPort)
+        {
+            string URL = (serverURL == string.Empty) ? SQLConnector.defaultServerURL : serverURL;
+            string Port = (serverPort == string.Empty) ? SQLConnector.defaultServerPort : serverPort;
+
+            string dbURL = (Port != "") ? URL + ":" + Port : URL;
+
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
+
+            builder.DataSource = dbURL;
+            builder.InitialCatalog = dbName;
+            builder.PersistSecurityInfo = true;
+            builder.UserID = dbUser;
+            // TODO: Encrypt this
+            builder.Password = dbPass;
+            
+            connectionString = builder.ConnectionString;
+
+            try
+            {
+                sqlConnection = new SqlConnection(connectionString);
+                sqlDataAdapter = new SqlDataAdapter();
+                this.Log(LogExtension.LogLevels.Info, "Connection established successfully!");
+            }
+            catch (SqlException ex)
+            {
+                this.Log(LogExtension.LogLevels.Error, "Connection failed! Reason:\n" + ex.Message);
+                return false;
+            }
+
+            return true;
+        }
+
+        public ConnectionState CheckConnection()
         {
             try
             {
-                if (serverPort != "")
-                    serverURL += ":" + serverPort;
+                if (sqlConnection == null)
+                    sqlConnection = new SqlConnection(connectionString);
 
-                SqlConnectionStringBuilder builder =
-                    new SqlConnectionStringBuilder(
-                        String.Format("Data Source={0};Initial Catalog=TTS_DB;Persist Security Info=True;User ID=TTS_APP", serverURL)
-                    );
-
-                // TODO: Encrypt this
-                builder.Password = "GetTrumpTweets";
-
-                connectionString = builder.ConnectionString;
-
-                sqlConnection = new SqlConnection(connectionString);
-                dataAdapter = new SqlDataAdapter();
-
+                sqlConnection.Open();
             }
             catch (Exception)
             {
-                this.Log(LogExtension.LogLevels.Error, "Unable to build and apply ConnectionString!");
+                this.Log(LogExtension.LogLevels.Error, "Unable to open a connection to tweet database!");
             }
+            finally
+            {
+                if (sqlConnection != null && sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return sqlConnection.State;
         }
 
         /// <summary>
@@ -132,10 +167,10 @@ namespace SchoolProjectServer
             // Create return variable
             DataTable results = new DataTable(tableName);
 
-            dataAdapter.SelectCommand = new SqlCommand(pSelectCommandString, sqlConnection);
+            sqlDataAdapter.SelectCommand = new SqlCommand(pSelectCommandString, sqlConnection);
 
             // Populate the dataset from the database
-            dataAdapter.Fill(results);
+            sqlDataAdapter.Fill(results);
 
             return results;
         }
@@ -247,7 +282,7 @@ namespace SchoolProjectServer
         {
             try
             {
-                dataAdapter.Update(styleData);
+                sqlDataAdapter.Update(styleData);
             }
             catch
             {

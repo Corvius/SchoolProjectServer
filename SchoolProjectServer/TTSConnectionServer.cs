@@ -110,7 +110,7 @@ namespace SchoolProjectServer
         private static ManualResetEvent ESendDone = new ManualResetEvent(false);
         private static ManualResetEvent EReceiveDone = new ManualResetEvent(false);
 
-        public static ManualResetEvent allDone = new ManualResetEvent(false);
+        public static ManualResetEvent EAllDone = new ManualResetEvent(false);
 
         // Helper functions
 
@@ -171,7 +171,7 @@ namespace SchoolProjectServer
                     while (true)
                     {
                         // Set the event to nonsignaled state.  
-                        allDone.Reset();
+                        EAllDone.Reset();
 
                         // Start an asynchronous socket to listen for connections.  
                         mLastStatus = "Waiting for a connection...";
@@ -181,7 +181,7 @@ namespace SchoolProjectServer
 
                         // Wait until a connection is made before continuing.  
                         //Application.DoEvents(); Memory-thief
-                        allDone.WaitOne(new TimeSpan(0, 0, 10));
+                        EAllDone.WaitOne(new TimeSpan(0, 0, 1));
                     }
 
                 }
@@ -205,7 +205,7 @@ namespace SchoolProjectServer
         {
             Console.WriteLine("AcceptCallBack");
             // Signal the main thread to continue.  
-            allDone.Set();
+            EAllDone.Set();
 
             // Get the socket that handles the client request.  
             Socket lListenerSocket = (Socket)AR.AsyncState;
@@ -220,24 +220,35 @@ namespace SchoolProjectServer
 
         public void ReadCallback(IAsyncResult AR)
         {
-            StateObject lStateObject = (StateObject)AR.AsyncState;
-            Socket lHandler = lStateObject.mSocket;
-            string lData;
-
-            int lReceivedBytes = lHandler.EndReceive(AR);
-
-            if (lReceivedBytes > 0)
+            try
             {
-                lStateObject.mSb.Append(Encoding.ASCII.GetString(lStateObject.mBuffer, 0, lReceivedBytes));
-                if (lStateObject.isDone())
+                StateObject lStateObject = (StateObject)AR.AsyncState;
+                Socket lHandler = lStateObject.mSocket;
+                string lData;
+
+                int lReceivedBytes = lHandler.EndReceive(AR);
+
+                if (lReceivedBytes > 0)
                 {
-                    lData = lStateObject.mSb.ToString();
-                    ServerHandleData(lHandler, lData);
+                    lStateObject.mSb.Append(Encoding.ASCII.GetString(lStateObject.mBuffer, 0, lReceivedBytes));
+                    if (lStateObject.isDone())
+                    {
+                        lData = lStateObject.mSb.ToString();
+                        ServerHandleData(lHandler, lData);
+                    }
+                    else
+                    {
+                        lHandler.BeginReceive(lStateObject.mBuffer, 0, StateObject.Buffer_Size, 0, new AsyncCallback(ReadCallback), lStateObject);
+                    }
                 }
                 else
                 {
-                    lHandler.BeginReceive(lStateObject.mBuffer, 0, StateObject.Buffer_Size, 0, new AsyncCallback(ReadCallback), lStateObject);
+                    Console.WriteLine("itt van valami.");
                 }
+            }
+            catch
+            {
+                Console.WriteLine("Error detected!");
             }
         }
 
@@ -302,9 +313,9 @@ namespace SchoolProjectServer
 
             MemoryStream lMs = new MemoryStream();
             StreamWriter lSw = new StreamWriter(lMs);
-            lSw.WriteLine(Envelope.protocolVersion);
+            lSw.WriteLine((byte)Envelope.protocolVersion);
             lSw.WriteLine(PROTOCOL_VERSION);
-            lSw.WriteLine(Envelope.tweetTweets);
+            lSw.WriteLine((byte)Envelope.tweetTweets);
             lSw.WriteLine(mTweets.Count);
             foreach (var Tweet in mTweets)
             {
@@ -314,6 +325,7 @@ namespace SchoolProjectServer
                 lSw.WriteLine(Tweet.TweetUpvotes);
                 lSw.WriteLine(Tweet.TweetDownvotes);
             }
+            lSw.Flush();
             SendData(pSocket, lMs);
             ESendDone.WaitOne();
         }
@@ -392,7 +404,6 @@ namespace SchoolProjectServer
                                     SendStyleList(pSocket);
                                     return;
                                 }
-                                break;
                             }
                         case (byte)Envelope.tweetTweets:
                             {
@@ -455,7 +466,9 @@ namespace SchoolProjectServer
                     string replacePattern = @"\b" + property.Original + @"\b";
                     string result = Regex.Replace(tweet.TweetText, replacePattern, property.Replacement);
 
-                    tweet.Updatetext(result);
+                    string result2 = Tweet.Base64Encode(result);
+                    tweet.Updatetext(result2);
+
                 }
             }
 

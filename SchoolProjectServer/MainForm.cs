@@ -9,18 +9,16 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading;
+using System.Xml;
+using System.Text.RegularExpressions;
 
 namespace SchoolProjectServer
 {
     public partial class MainForm : Form
     {
-        private const string defaultServerURL = "localhost";
-        private const string defaultServerPort = "";
         private const int maxTweetsToFetch = 100;
         private int timerInterval = 3000;
 
-        private string currentServerURL = defaultServerURL;
-        private string currentServerPort = defaultServerPort;
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
 
@@ -35,12 +33,15 @@ namespace SchoolProjectServer
         {
             InitializeComponent();
 
-            txtServerURL.Text = currentServerURL;
-            txtServerPort.Text = currentServerPort;
+            txtServerURL.Text = SQLConnector.defaultServerURL;
+            txtServerPort.Text = SQLConnector.defaultServerPort;
+            sqlDBConnection = new SQLConnector();
 
             SetupDataGrid();
 
             DisableStyleComponents();
+
+            UpdateServerAddress();
         }
 
         private void SetupDataGrid()
@@ -57,6 +58,19 @@ namespace SchoolProjectServer
             dgwStyleElements.Columns[1].HeaderText = "Replacement";
             dgwStyleElements.Columns[1].DataPropertyName = "Replacement";
             dgwStyleElements.Columns[1].Width = dgwStyleElements.Width / 2;
+        }
+
+        private void UpdateServerAddress()
+        {
+            string checkUrl = "http://checkip.dyndns.org";
+            string resultXML = new WebClient().DownloadString(checkUrl);
+            string matchPattern = @"([\d\.]+)";
+
+            string selfIP = Regex.Match(resultXML, matchPattern, RegexOptions.Multiline).Groups[1].ToString();
+            string setIpUrl = string.Format("http://distantworlds.org/tts/setaddress.php?address={0}", selfIP);
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(setIpUrl);
+            WebResponse res = request.GetResponse();
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -183,20 +197,6 @@ namespace SchoolProjectServer
             btUpdateServer.Enabled = Editable;
         }
 
-        private bool CreateConnection(string serverURL, string serverPort)
-        {
-            sqlDBConnection = new SQLConnector(serverURL, serverPort);
-            string message = serverURL + ((serverPort == string.Empty)? "" : ":" + serverPort);
-
-            bool connected = sqlDBConnection.IsServerConnected();
-            if (connected)
-                this.Log(LogExtension.LogLevels.Info, "SQL connection is confirmed to " + message);
-            else
-                this.Log(LogExtension.LogLevels.Error, "Cannot establish SQL connection to " + message + "!");
-
-            return connected;
-        }
-
         private void RefreshStyleList()
         {
             tweetStyleData = sqlDBConnection.GetTweetStyles();
@@ -302,20 +302,23 @@ namespace SchoolProjectServer
 
         private void btConnectToDatabase_Click(object sender, EventArgs e)
         {
-            string serverURL = (txtServerURL.Text == string.Empty)? defaultServerURL : txtServerURL.Text;
-            string serverPort = (txtServerPort.Text == string.Empty) ? defaultServerPort : txtServerPort.Text;
+            string urlMessage = (txtServerPort.Text != string.Empty) ? txtServerURL.Text + ":" + txtServerPort.Text : txtServerURL.Text;
 
-            if (!IsConnectionEstablished)
-                if (CreateConnection(serverURL, serverPort))
-                {
-                    RefreshStyleList();
+            if (sqlDBConnection.BuildConnection(txtServerURL.Text, txtServerPort.Text))
+            {
+                this.Log(LogExtension.LogLevels.Info, "Building connection to " + urlMessage);
 
-                    cbStyles.SelectedIndex = 0;
+                RefreshStyleList();
+                cbStyles.SelectedIndex = 0;
 
-                    btConnectToDatabase.Text = "Connected!";
-                    IsConnectionEstablished = true;
-                    EnableStyleComponents();
-                }
+                btConnectToDatabase.Text = "Connected!";
+                IsConnectionEstablished = true;
+                EnableStyleComponents();
+            }
+            else
+            {
+                this.Log(LogExtension.LogLevels.Error, "Unable to build connection to " + urlMessage + "!");
+            }
         }
 
         private void btResetConnectionFields_Click(object sender, EventArgs e)
