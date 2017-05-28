@@ -96,7 +96,6 @@ namespace SchoolProjectServer
         private const int COMMUNICATION_PORT = 7756;
         private const long PROTOCOL_VERSION = 0xA000;
         private const int SERVER_LIMIT = 8;
-        private const string EOF_STRING = "<EOF>";
 
         // Variables
         IPEndPoint mIPEndPoint;
@@ -262,8 +261,8 @@ namespace SchoolProjectServer
                 int lSentBytes = lHandler.EndSend(AR);
                 mLastStatus = "Sent " + lSentBytes.ToString() + " bytes.";
 
-//                lHandler.Shutdown(SocketShutdown.Both);
-//                lHandler.Close();
+                lHandler.Shutdown(SocketShutdown.Both);
+                lHandler.Close();
                 ESendDone.Set();
             }
             catch (Exception e)
@@ -303,7 +302,6 @@ namespace SchoolProjectServer
                 lSw.WriteLine(Style.mStyleName);
                 lSw.WriteLine(Style.mStyleImageURL);
             }
-            lSw.WriteLine(EOF_STRING);
             lSw.Flush();
             SendData(pSocket, lMs);
             ESendDone.WaitOne();
@@ -327,7 +325,6 @@ namespace SchoolProjectServer
                 lSw.WriteLine(Tweet.TweetUpvotes);
                 lSw.WriteLine(Tweet.TweetDownvotes);
             }
-            lSw.WriteLine(EOF_STRING);
             lSw.Flush();
             SendData(pSocket, lMs);
             ESendDone.WaitOne();
@@ -450,31 +447,38 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
-            List<Tweet> tweets = mOwner.sqlDBConnection.RetrieveTweets(5);
+            //List<Tweet> tweets = mOwner.sqlDBConnection.GetTweets(5);
 
-            TweetStyle selectedStyle = null;
-            foreach (TweetStyle style in mTweetStyles)
-                if (style.mStyleName == pStyleName)
-                {
-                    selectedStyle = style;
-                    break;
-                }
+            //TweetStyle selectedStyle = null;
+            //foreach (TweetStyle style in mTweetStyles)
+            //    if (style.mStyleName == pStyleName)
+            //    {
+            //        selectedStyle = style;
+            //        break;
+            //    }
 
-            foreach (Tweet tweet in tweets)
+            //foreach (Tweet tweet in tweets)
+            //{
+            //    tweet.Updatetext(Tweet.Base64Decode(tweet.TweetText));
+
+            //    foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
+            //    {
+            //        string replacePattern = @"\b" + property.Original + @"\b";
+            //        string result = Regex.Replace(tweet.TweetText, replacePattern, property.Replacement);
+
+            //        string result2 = Tweet.Base64Encode(result);
+            //        tweet.Updatetext(result2);
+
+            //    }
+            //}
+            var replacements = new Dictionary<string, string>()
             {
-                tweet.Updatetext(Tweet.Base64Decode(tweet.TweetText));
+                {"somestring",someVariable1},
+                {"anotherstring",someVariable2}
+            };
 
-                foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
-                {
-                    string replacePattern = @"\b" + property.Original + @"\b";
-                    string result = Regex.Replace(tweet.TweetText, replacePattern, property.Replacement);
-
-                    tweet.Updatetext(result);
-
-                }
-                tweet.Updatetext(Tweet.Base64Encode(tweet.TweetText));
-            }
-
+            var regex = new Regex(String.Join("|", replacements.Keys.Select(k => Regex.Escape(k))));
+            var replaced = regex.Replace(input, m => replacements[m.Value]);
             mTweets = tweets;
         }
     }

@@ -17,7 +17,7 @@ namespace SchoolProjectServer
     public partial class MainForm : Form
     {
         private const int maxTweetsToFetch = 100;
-        private int timerInterval = 3000;
+        private int timerInterval = 3000; // TODO: Change this back to 300
 
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
@@ -356,7 +356,7 @@ namespace SchoolProjectServer
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            listenerThread.Interrupt();
+            listenerThread.Join();
         }
     }
 }

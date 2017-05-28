@@ -19,7 +19,7 @@ namespace SchoolProjectServer
         private readonly string dbUser = "TTS_APP";
         private readonly string dbPass = "GetTrumpTweets";
 
-        internal readonly static string defaultServerURL = "89.132.188.93";
+        internal readonly static string defaultServerURL = "localhost";
         internal readonly static string defaultServerPort = ""; // 1433
 
         internal bool IsConnectionAvailable
@@ -135,14 +135,19 @@ namespace SchoolProjectServer
             return result;
         }
 
-        public List<Tweet> RetrieveTweets(int count)
+        private DataTable RetrieveTweets(int count)
         {
             List<Tweet> results = new List<Tweet>();
 
             string selectTweetsCommand = string.Format(
                 "SELECT TOP {0} * FROM dbo.tweets ORDER BY tweetTimeStamp DESC;", count.ToString());
 
-            DataTable tweets = SelectData(selectTweetsCommand, "Tweets");
+            return SelectData(selectTweetsCommand, "Tweets");
+        }
+
+        public List<Tweet> GetTweets(int count)
+        {
+            DataTable tweets = RetrieveTweets(count);
 
             List<Tweet> tweetQuery = tweets
                 .Rows
