@@ -98,7 +98,7 @@ namespace SchoolProjectServer
             return result;
         }
 
-        internal DataTable RetrieveTweetsFromSql(int tweetCount)
+        internal DataTable RetrieveTweetsFromSql(int tweetCount = 0)
         {
             string count = (tweetCount > 0) ? "TOP " + tweetCount.ToString() + " *" : "*"; 
 
@@ -250,11 +250,22 @@ namespace SchoolProjectServer
         {
             try
             {
-                sqlDataAdapter.Update(styleData);
+                // CREATE TYPE [dbo].[teszt] AS TABLE <- ez kell hozzá
+                string tableName = "teszt";
+                sqlConnection.Open();
+                string sqlCom = string.Format("SELECT * INTO dbo.{0} FROM @tvp", tableName);
+                SqlCommand cmd = new SqlCommand(sqlCom, sqlConnection);
+                SqlParameter tvpParam = cmd.Parameters.AddWithValue("@tvp", styleData);
+                tvpParam.SqlDbType = SqlDbType.Structured;
+                tvpParam.TypeName = "dbo." + tableName;
+                cmd.ExecuteNonQuery();
+                sqlConnection.Close();
+
+                //sqlDataAdapter.Update(styleData);
             }
-            catch
+            catch (Exception ex)
             {
-                this.Log(LogExtension.LogLevels.Error, "Unable to update server!");
+                this.Log(LogExtension.LogLevels.Error, "Unable to update server! Reason:\n" + ex.Message);
                 return false;
             }
 

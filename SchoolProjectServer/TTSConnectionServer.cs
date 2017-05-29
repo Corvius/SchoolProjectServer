@@ -97,7 +97,7 @@ namespace SchoolProjectServer
         private const long PROTOCOL_VERSION = 0xA000;
         private const int SERVER_LIMIT = 8;
         private const string EOF_STRING = "<EOF>";
-        private const int TWEETS_TO_SEND = 5;
+        private const int TWEETS_TO_SEND = 20;
 
         // Variables
         IPEndPoint mIPEndPoint;
