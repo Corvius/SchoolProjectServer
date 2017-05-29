@@ -17,7 +17,7 @@ namespace SchoolProjectServer
     public partial class MainForm : Form
     {
         private const int maxTweetsToFetch = 100;
-        private int timerInterval = 10; // 300
+        private int timerInterval = 180;
 
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
@@ -123,11 +123,6 @@ namespace SchoolProjectServer
 
         private void LoadStyleComponents(string styleName)
         {
-            DataTable selectedStyle = tweetStyleData.Tables[styleName];
-
-            bsGridBinder.DataSource = selectedStyle;
-            dgwStyleElements.DataSource = bsGridBinder;
-
             tweetStyleData = sqlDBConnection.GetTweetStyles();
 
             string imageLocation = tweetStyleData.Tables["StyleNames"]
@@ -153,6 +148,11 @@ namespace SchoolProjectServer
                 .Select(row => new TweetStyle(row["StyleName"].ToString(), row["StyleImage"].ToString())).ToList();
             
             connectionServer.UpdateTweetStyles(styleQuery);
+
+            DataTable selectedStyle = tweetStyleData.Tables[styleName];
+
+            bsGridBinder.DataSource = selectedStyle;
+            dgwStyleElements.DataSource = bsGridBinder;
         }
 
         private void EnableStyleComponents()
@@ -347,9 +347,11 @@ namespace SchoolProjectServer
         private void btUpdateServer_Click(object sender, EventArgs e)
         {
             sqlDBConnection.UpdateStyle((DataTable)bsGridBinder.DataSource);
+            string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
+            LoadStyleComponents(styleName);
         }
 
-        private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+    private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             bsGridBinder.EndEdit();
         }

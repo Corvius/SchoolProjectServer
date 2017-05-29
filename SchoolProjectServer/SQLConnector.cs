@@ -250,15 +250,33 @@ namespace SchoolProjectServer
         {
             try
             {
+                string tableName = styleData.TableName.ToLower();
+                string clearCommand = string.Format("TRUNCATE TABLE dbo.{0};", tableName);
+                if (sqlConnection.State == ConnectionState.Closed)
+                    sqlConnection.Open();
+                using (SqlCommand command = new SqlCommand(clearCommand, sqlConnection))
+                    command.ExecuteNonQuery();
+
+                List<StyleProperty> properties = styleData
+                    .Rows
+                    .Cast<DataRow>()
+                    .Select(row => new StyleProperty(row["Original"].ToString(), row["Replacement"].ToString())).ToList();
+
+                foreach (StyleProperty property in properties)
+                {
+                    string updateCommand = string.Format("INSERT INTO dbo.{0} (Original, Replacement) VALUES ('{1}', '{2}');", tableName, property.Original, property.Replacement);
+                    using (SqlCommand command = new SqlCommand(updateCommand, sqlConnection))
+                        command.ExecuteNonQuery();
+
+                }
                 // CREATE TYPE [dbo].[teszt] AS TABLE <- ez kell hozzá
-                string tableName = "teszt";
-                sqlConnection.Open();
-                string sqlCom = string.Format("SELECT * INTO dbo.{0} FROM @tvp", tableName);
-                SqlCommand cmd = new SqlCommand(sqlCom, sqlConnection);
-                SqlParameter tvpParam = cmd.Parameters.AddWithValue("@tvp", styleData);
-                tvpParam.SqlDbType = SqlDbType.Structured;
-                tvpParam.TypeName = "dbo." + tableName;
-                cmd.ExecuteNonQuery();
+                //sqlConnection.Open();
+                //string sqlCom = string.Format("SELECT * INTO dbo.{0} FROM @tvp", tableName);
+                //SqlCommand cmd = new SqlCommand(sqlCom, sqlConnection);
+                //SqlParameter tvpParam = cmd.Parameters.AddWithValue("@tvp", styleData);
+                //tvpParam.SqlDbType = SqlDbType.Structured;
+                //tvpParam.TypeName = "dbo." + tableName;
+                //cmd.ExecuteNonQuery();
                 sqlConnection.Close();
 
                 //sqlDataAdapter.Update(styleData);

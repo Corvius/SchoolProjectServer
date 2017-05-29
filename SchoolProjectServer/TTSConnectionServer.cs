@@ -97,7 +97,7 @@ namespace SchoolProjectServer
         private const long PROTOCOL_VERSION = 0xA000;
         private const int SERVER_LIMIT = 8;
         private const string EOF_STRING = "<EOF>";
-        private const int TWEETS_TO_SEND = 20;
+        private const int TWEETS_TO_SEND = 8;
 
         // Variables
         IPEndPoint mIPEndPoint;
@@ -475,12 +475,12 @@ namespace SchoolProjectServer
                 foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
                 {
                     // Exact search, narrow search pattern
-                    //string replacePattern = @"\b" + property.Original + @"\b";
-                    //string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement);
+                    string replacePattern = @"\b" + property.Original + @"\b";
+                    string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
 
                     // Loose search, wide search pattern
-                    string replacePattern = property.Original; // Partial match
-                    string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
+                    //string replacePattern = property.Original; // Partial match
+                    //string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
 
                     decodedTweet = result;
                 }
