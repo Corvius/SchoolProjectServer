@@ -30,6 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.tlpMainLayout = new System.Windows.Forms.TableLayoutPanel();
             this.txtServerURL = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
@@ -41,20 +42,20 @@
             this.btAddNewStyle = new System.Windows.Forms.Button();
             this.btRemoveStyle = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
-            this.dgwStyleElements = new System.Windows.Forms.DataGridView();
             this.btUpdateServer = new System.Windows.Forms.Button();
             this.btReloadStyle = new System.Windows.Forms.Button();
+            this.lineSeparator1 = new SchoolProjectServer.LineSeparator();
             this.label3 = new System.Windows.Forms.Label();
             this.pbStyleImage = new System.Windows.Forms.PictureBox();
             this.txtImagePath = new System.Windows.Forms.TextBox();
             this.btLoadImageURL = new System.Windows.Forms.Button();
             this.btResetConnectionFields = new System.Windows.Forms.Button();
             this.btClearImage = new System.Windows.Forms.Button();
+            this.dgwStyleElements = new SchoolProjectServer.CustomDataGridView();
             this.tmrRecheckTweets = new System.Windows.Forms.Timer(this.components);
-            this.lineSeparator1 = new SchoolProjectServer.LineSeparator();
             this.tlpMainLayout.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dgwStyleElements)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbStyleImage)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgwStyleElements)).BeginInit();
             this.SuspendLayout();
             // 
             // tlpMainLayout
@@ -79,7 +80,6 @@
             this.tlpMainLayout.Controls.Add(this.btAddNewStyle, 5, 17);
             this.tlpMainLayout.Controls.Add(this.btRemoveStyle, 5, 18);
             this.tlpMainLayout.Controls.Add(this.label5, 1, 9);
-            this.tlpMainLayout.Controls.Add(this.dgwStyleElements, 1, 10);
             this.tlpMainLayout.Controls.Add(this.btUpdateServer, 5, 21);
             this.tlpMainLayout.Controls.Add(this.btReloadStyle, 5, 20);
             this.tlpMainLayout.Controls.Add(this.lineSeparator1, 1, 4);
@@ -89,6 +89,7 @@
             this.tlpMainLayout.Controls.Add(this.btLoadImageURL, 5, 15);
             this.tlpMainLayout.Controls.Add(this.btResetConnectionFields, 7, 2);
             this.tlpMainLayout.Controls.Add(this.btClearImage, 6, 15);
+            this.tlpMainLayout.Controls.Add(this.dgwStyleElements, 1, 10);
             this.tlpMainLayout.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tlpMainLayout.Location = new System.Drawing.Point(0, 0);
             this.tlpMainLayout.Name = "tlpMainLayout";
@@ -229,33 +230,6 @@
             this.label5.TabIndex = 11;
             this.label5.Text = "Style Elements";
             // 
-            // dgwStyleElements
-            // 
-            this.dgwStyleElements.AllowUserToOrderColumns = true;
-            this.dgwStyleElements.AllowUserToResizeColumns = false;
-            this.dgwStyleElements.AllowUserToResizeRows = false;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.ControlLight;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgwStyleElements.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
-            this.dgwStyleElements.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.tlpMainLayout.SetColumnSpan(this.dgwStyleElements, 3);
-            this.dgwStyleElements.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgwStyleElements.Location = new System.Drawing.Point(11, 101);
-            this.dgwStyleElements.MultiSelect = false;
-            this.dgwStyleElements.Name = "dgwStyleElements";
-            this.dgwStyleElements.RowHeadersVisible = false;
-            this.tlpMainLayout.SetRowSpan(this.dgwStyleElements, 12);
-            this.dgwStyleElements.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.dgwStyleElements.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
-            this.dgwStyleElements.Size = new System.Drawing.Size(346, 483);
-            this.dgwStyleElements.TabIndex = 12;
-            this.dgwStyleElements.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgwStyleElements_CellEndEdit);
-            // 
             // btUpdateServer
             // 
             this.tlpMainLayout.SetColumnSpan(this.btUpdateServer, 3);
@@ -279,6 +253,17 @@
             this.btReloadStyle.Text = "Reload Style";
             this.btReloadStyle.UseVisualStyleBackColor = true;
             this.btReloadStyle.Click += new System.EventHandler(this.btReloadStyle_Click);
+            // 
+            // lineSeparator1
+            // 
+            this.tlpMainLayout.SetColumnSpan(this.lineSeparator1, 7);
+            this.lineSeparator1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lineSeparator1.Location = new System.Drawing.Point(11, 67);
+            this.lineSeparator1.MaximumSize = new System.Drawing.Size(2000, 2);
+            this.lineSeparator1.MinimumSize = new System.Drawing.Size(0, 2);
+            this.lineSeparator1.Name = "lineSeparator1";
+            this.lineSeparator1.Size = new System.Drawing.Size(562, 2);
+            this.lineSeparator1.TabIndex = 15;
             // 
             // label3
             // 
@@ -349,21 +334,32 @@
             this.btClearImage.UseVisualStyleBackColor = true;
             this.btClearImage.Click += new System.EventHandler(this.btClearImage_Click);
             // 
+            // dgwStyleElements
+            // 
+            this.dgwStyleElements.AllowUserToResizeColumns = false;
+            this.dgwStyleElements.AllowUserToResizeRows = false;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.ActiveCaption;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgwStyleElements.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            this.dgwStyleElements.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.tlpMainLayout.SetColumnSpan(this.dgwStyleElements, 3);
+            this.dgwStyleElements.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgwStyleElements.Location = new System.Drawing.Point(11, 101);
+            this.dgwStyleElements.Name = "dgwStyleElements";
+            this.dgwStyleElements.RowHeadersVisible = false;
+            this.tlpMainLayout.SetRowSpan(this.dgwStyleElements, 12);
+            this.dgwStyleElements.Size = new System.Drawing.Size(346, 483);
+            this.dgwStyleElements.TabIndex = 23;
+            // 
             // tmrRecheckTweets
             // 
             this.tmrRecheckTweets.Interval = 3000;
             this.tmrRecheckTweets.Tick += new System.EventHandler(this.tmrRecheckTweets_Tick);
-            // 
-            // lineSeparator1
-            // 
-            this.tlpMainLayout.SetColumnSpan(this.lineSeparator1, 7);
-            this.lineSeparator1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lineSeparator1.Location = new System.Drawing.Point(11, 67);
-            this.lineSeparator1.MaximumSize = new System.Drawing.Size(2000, 2);
-            this.lineSeparator1.MinimumSize = new System.Drawing.Size(0, 2);
-            this.lineSeparator1.Name = "lineSeparator1";
-            this.lineSeparator1.Size = new System.Drawing.Size(562, 2);
-            this.lineSeparator1.TabIndex = 15;
             // 
             // MainForm
             // 
@@ -372,6 +368,7 @@
             this.ClientSize = new System.Drawing.Size(584, 595);
             this.Controls.Add(this.tlpMainLayout);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(600, 600);
             this.Name = "MainForm";
             this.Text = "TTS Server";
@@ -379,8 +376,8 @@
             this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.tlpMainLayout.ResumeLayout(false);
             this.tlpMainLayout.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dgwStyleElements)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbStyleImage)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgwStyleElements)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -398,7 +395,6 @@
         private System.Windows.Forms.Button btAddNewStyle;
         private System.Windows.Forms.Button btRemoveStyle;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.DataGridView dgwStyleElements;
         private System.Windows.Forms.Button btUpdateServer;
         private System.Windows.Forms.Button btReloadStyle;
         private LineSeparator lineSeparator1;
@@ -409,6 +405,7 @@
         private System.Windows.Forms.Button btLoadImageURL;
         private System.Windows.Forms.Button btResetConnectionFields;
         private System.Windows.Forms.Button btClearImage;
+        private CustomDataGridView dgwStyleElements;
     }
 }
 

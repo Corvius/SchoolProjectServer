@@ -116,7 +116,7 @@ namespace CustomLog
             //    &&
             //    MessageBox.Show
             //        ("Do you really want to close the debug window?",
-            //        "Closing debugform",
+            //        "Closing debugform", 
             //        MessageBoxButtons.YesNo,
             //        MessageBoxIcon.Question,
             //        MessageBoxDefaultButton.Button2) == DialogResult.No;

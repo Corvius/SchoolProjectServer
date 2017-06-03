@@ -48,6 +48,7 @@ namespace SchoolProjectServer
             {
                 sqlConnection = new SqlConnection(connectionString);
                 sqlDataAdapter = new SqlDataAdapter();
+                sqlConnection.Open();
                 this.Log(LogExtension.LogLevels.Info, "Connection established successfully!");
             }
             catch (SqlException ex)
@@ -55,47 +56,31 @@ namespace SchoolProjectServer
                 this.Log(LogExtension.LogLevels.Error, "Connection failed! Reason:\n" + ex.Message);
                 return false;
             }
+            finally
+            {
+                sqlConnection.Close();
+            }
 
             return true;
         }
 
-        internal bool UpdateTweets(List<Tweet> tweets)
+        internal bool isDbConnectionAvailable()
         {
-            DataTable rawTweetData = RetrieveTweetsFromSql(0);
-
-            List<long> existingIDs = rawTweetData
-                .Rows
-                .Cast<DataRow>()
-                .Select(row => (long)row["tweetID"]).ToList();
-
-            bool result = true;
-            foreach (Tweet tweet in tweets)
+            try
             {
-                if (existingIDs.Contains(tweet.TweetID))
-                    continue;
-
-                string insertRowCommand = string.Format(
-                    "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp, tweetUpVote, tweetDownVote) " +
-                        "VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');",
-                    tweet.TweetID, Tweet.Base64Encode(tweet.TweetText), tweet.TweetTimeStamp.ToString("yyyy.MM.dd HH:mm:ss"), tweet.TweetUpvotes, tweet.TweetDownvotes);
-
-                try
+                this.Log(LogExtension.LogLevels.Debug, "Checking if DB connection is available...");
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    sqlConnection.Open();
-                    using (SqlCommand command = new SqlCommand(insertRowCommand, sqlConnection))
-                        command.ExecuteNonQuery();
-                }
-                catch (Exception)
-                {
-                    result = false;
-                }
-                finally
-                {
-                    sqlConnection.Close();
+                    connection.Open();
+                    this.Log(LogExtension.LogLevels.Debug, "DB connection is alive");
+                    return true;
                 }
             }
-
-            return result;
+            catch (Exception)
+            {
+                this.Log(LogExtension.LogLevels.Debug, "DB connection is down");
+                return false;
+            }
         }
 
         internal DataTable RetrieveTweetsFromSql(int tweetCount = 0)
@@ -125,135 +110,146 @@ namespace SchoolProjectServer
             return tweetQuery;
         }
 
-        /// <summary>
-        /// Connects to the database and executes the given SELECT command.
-        /// </summary>
-        /// <param name="pSelectCommandString">The SQL SELECT command to be executed on the database</param>
-        /// <returns>If the query is successful, returns a DataSet object</returns>
         private DataTable SelectData(string pSelectCommandString, string tableName)
         {
-            // Create return variable
             DataTable results = new DataTable(tableName);
-
             sqlDataAdapter.SelectCommand = new SqlCommand(pSelectCommandString, sqlConnection);
-
-            // Populate the dataset from the database
             sqlDataAdapter.Fill(results);
-
             return results;
         }
 
-        public DataSet GetTweetStyles()
+        internal DataSet GetTweetStyles()
         {
             DataSet results = new DataSet("TweetStyles");
-            DataTable nameQuery = null;
-            DataTable contentQuery = null;
-            string selectNamesCommand;
-            string selectContentsCommand;
-            string styleName;
-            string styleImage;
 
-            selectNamesCommand =
+            string selectNamesCommand =
                 "SELECT StyleName, StyleImage " +
                 "FROM TTS_DB.dbo.styles " +
                 "WHERE OBJECT_ID(LOWER(N'dbo.' + StyleName), N'U') IS NOT NULL;";
 
-            nameQuery = SelectData(selectNamesCommand, "StyleNames");
+            DataTable nameQuery = SelectData(selectNamesCommand, "StyleNames");
 
             results.Tables.Add(nameQuery);
 
             for (int nameRowIndex = 0; nameRowIndex < nameQuery.Rows.Count; nameRowIndex++)
             { 
-                styleName = nameQuery.Rows[nameRowIndex][0].ToString();
-                styleImage = nameQuery.Rows[nameRowIndex][1].ToString();
+                string styleName = nameQuery.Rows[nameRowIndex][0].ToString();
 
-                selectContentsCommand = string.Format(
+                string selectContentsCommand = string.Format(
                     "SELECT Original, Replacement " +
                     "FROM TTS_DB.dbo.{0};", styleName.ToLower());
 
-                contentQuery = SelectData(selectContentsCommand, styleName);
+                DataTable contentQuery = SelectData(selectContentsCommand, styleName);
 
                 results.Tables.Add(contentQuery);
-
             }
 
             return results;
         }
 
-        public bool AddNewStyle(string styleName)
+        internal void UpdateTweets(List<Tweet> tweets)
         {
-            string createTableCommand = string.Format(
-                "CREATE TABLE {0} (" +
-                "Original nvarchar(50) NOT NULL PRIMARY KEY, " +
-                "Replacement nvarchar(50) NOT NULL);", styleName.ToLower());
-
-            string updateTableCommand = string.Format(
-                "INSERT INTO dbo.styles (StyleName, StyleImage) VALUES ('{0}', '');", styleName);
-
             try
             {
                 sqlConnection.Open();
+                DataTable rawTweetData = RetrieveTweetsFromSql(0);
+
+                List<long> existingIDs = rawTweetData
+                    .Rows
+                    .Cast<DataRow>()
+                    .Select(row => (long)row["tweetID"]).ToList();
+
+                foreach (Tweet tweet in tweets)
+                {
+                    if (existingIDs.Contains(tweet.TweetID))
+                        continue;
+
+                    string insertRowCommand = string.Format(
+                        "INSERT INTO dbo.tweets (tweetID, tweetText, tweetTimeStamp, tweetUpVote, tweetDownVote) " +
+                            "VALUES ('{0}', '{1}', '{2}', '{3}', '{4}');",
+                        tweet.TweetID, Tweet.Base64Encode(tweet.TweetText), tweet.TweetTimeStamp.ToString("yyyy.MM.dd HH:mm:ss"), tweet.TweetUpvotes, tweet.TweetDownvotes);
+
+                    using (SqlCommand command = new SqlCommand(insertRowCommand, sqlConnection))
+                        command.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+        }
+
+        internal void AddNewStyle(string styleName)
+        {
+            try
+            {
+                sqlConnection.Open();
+
+                string createTableCommand = string.Format(
+                    "CREATE TABLE {0} (" +
+                    "Original nvarchar(50) NOT NULL PRIMARY KEY, " +
+                    "Replacement nvarchar(50) NOT NULL);", styleName.ToLower());
+
+                string updateTableCommand = string.Format(
+                    "INSERT INTO dbo.styles (StyleName, StyleImage) VALUES ('{0}', '');", styleName);
+
                 using (SqlCommand command = new SqlCommand(createTableCommand, sqlConnection))
                     command.ExecuteNonQuery();
 
                 using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
                     command.ExecuteNonQuery();
+
+                this.Log(LogExtension.LogLevels.Info, "Create/Update table command was successfully executed");
             }
             catch (Exception)
             {
                 this.Log(LogExtension.LogLevels.Error, "Create/Update table command cannot be executed!");
-                return false;
             }
             finally
             {
                 sqlConnection.Close();
             }
-
-            this.Log(LogExtension.LogLevels.Info, "Create/Update table command was successfully executed");
-
-            return true;
         }
 
-        public bool RemoveStyle(string styleName)
+        internal void RemoveStyle(string styleName)
         {
-            string dropTableCommand = string.Format(
-                "DROP TABLE dbo.{0};", styleName.ToLower());
-
-            string updateTableCommand = string.Format(
-                "DELETE FROM dbo.styles WHERE StyleName = '{0}';", styleName);
-
             try
             {
                 sqlConnection.Open();
+
+                string dropTableCommand = string.Format(
+                    "DROP TABLE dbo.{0};", styleName.ToLower());
+
+                string updateTableCommand = string.Format(
+                    "DELETE FROM dbo.styles WHERE StyleName = '{0}';", styleName);
+
                 using (SqlCommand command = new SqlCommand(dropTableCommand, sqlConnection))
                     command.ExecuteNonQuery();
 
                 using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
                     command.ExecuteNonQuery();
+
+                this.Log(LogExtension.LogLevels.Info, "Drop/Update table command was successfully executed");
             }
             catch (Exception)
             {
                 this.Log(LogExtension.LogLevels.Error, "Drop/Update table command cannot be executed!");
-                return false;
             }
             finally
             {
                 sqlConnection.Close();
             }
-
-            this.Log(LogExtension.LogLevels.Info, "Drop/Update table command was successfully executed");
-
-            return true;
         }
 
-        public bool UpdateStyle(DataTable styleData)
+        internal void UpdateStyle(DataTable styleData)
         {
             try
             {
+                sqlConnection.Open();
+
                 string tableName = styleData.TableName.ToLower();
                 string clearCommand = string.Format("TRUNCATE TABLE dbo.{0};", tableName);
-                if (sqlConnection.State == ConnectionState.Closed)
-                    sqlConnection.Open();
+
                 using (SqlCommand command = new SqlCommand(clearCommand, sqlConnection))
                     command.ExecuteNonQuery();
 
@@ -267,116 +263,18 @@ namespace SchoolProjectServer
                     string updateCommand = string.Format("INSERT INTO dbo.{0} (Original, Replacement) VALUES ('{1}', '{2}');", tableName, property.Original, property.Replacement);
                     using (SqlCommand command = new SqlCommand(updateCommand, sqlConnection))
                         command.ExecuteNonQuery();
-
                 }
-                // CREATE TYPE [dbo].[teszt] AS TABLE <- ez kell hozzá
-                //sqlConnection.Open();
-                //string sqlCom = string.Format("SELECT * INTO dbo.{0} FROM @tvp", tableName);
-                //SqlCommand cmd = new SqlCommand(sqlCom, sqlConnection);
-                //SqlParameter tvpParam = cmd.Parameters.AddWithValue("@tvp", styleData);
-                //tvpParam.SqlDbType = SqlDbType.Structured;
-                //tvpParam.TypeName = "dbo." + tableName;
-                //cmd.ExecuteNonQuery();
-                sqlConnection.Close();
 
-                //sqlDataAdapter.Update(styleData);
+                this.Log(LogExtension.LogLevels.Info, "Server was successfully updated");
             }
             catch (Exception ex)
             {
                 this.Log(LogExtension.LogLevels.Error, "Unable to update server! Reason:\n" + ex.Message);
-                return false;
             }
-
-            this.Log(LogExtension.LogLevels.Info, "Server was successfully updated");
-            return true;
-        }
-    }
-}
-
-// Welcome to the Graveyard!
-// You may find both trash and treasure in this section for discarded methods. Enjoy!
-/*
-
-/// <summary>
-/// Gets all (attirbutes, stats) data related to a single character in a specific order
-/// </summary>
-/// <param name="pCharName">Name of the character</param>
-/// <returns>Returns a DataHolder list filled with the requested data</returns>
-public List<DataHolder> GetElementData(string pCharName)
-{
-    this.Log(LogExtension.LogLevels.Info, "Retrieving element data");
-
-    string selectCommandString =
-        "SELECT * " +
-        "FROM dbo.pirate;";
-
-    List<DataHolder> results = new List<DataHolder>();
-
-    foreach (var entry in SelectData(selectCommandString, true))
-    {
-        results.Add(new DataHolder(entry[0], entry[1]));
-    }
-
-    return results;
-}
-
-            for (int rowIndex = 0; rowIndex < dataSet.Tables[tableIndex].Rows.Count; rowIndex++)
+            finally
             {
-                results.Add(new List<string>());
-
-                for (int columnIndex = 0; columnIndex < dataSet.Tables[tableIndex].Columns.Count; columnIndex++)
-                {
-                    string cellValue = dataSet.Tables[tableIndex].Rows[rowIndex][columnIndex].ToString();
-
-
-        public List<TweetStyle> GetTweetStyles()
-        {
-            List<TweetStyle> results = new List<TweetStyle>();
-            TweetStyle currentStyle = null;
-            DataTable nameQuery = null;
-            DataTable contentQuery = null;
-            string selectNamesCommand;
-            string selectContentsCommand;
-            string styleName;
-            string styleImage;
-            string original;
-            string replacement;
-
-            selectNamesCommand =
-                "SELECT StyleName, StyleImage " +
-                "FROM TTS_DB.dbo.styles " +
-                "WHERE OBJECT_ID(LOWER(N'dbo.' + StyleName), N'U') IS NOT NULL;";
-
-            nameQuery = SelectData(selectNamesCommand);
-
-            for (int nameRowIndex = 0; nameRowIndex < nameQuery.Rows.Count; nameRowIndex++)
-            { 
-                styleName = nameQuery.Rows[nameRowIndex][0].ToString();
-                styleImage = nameQuery.Rows[nameRowIndex][1].ToString();
-
-                currentStyle = new TweetStyle(styleName, styleImage);
-
-                selectContentsCommand = string.Format(
-                    "SELECT Original, Replacement " +
-                    "FROM TTS_DB.dbo.{0};", styleName.ToLower());
-
-                contentQuery = SelectData(selectContentsCommand);
-
-                for (int contentRowIndex = 0; contentRowIndex < contentQuery.Rows.Count; contentRowIndex++)
-                {
-                    original = nameQuery.Rows[nameRowIndex][0].ToString();
-                    replacement = nameQuery.Rows[nameRowIndex][1].ToString();
-
-                    currentStyle.AddProperty(original, replacement);
-                }
-
-                results.Add(currentStyle);
+                sqlConnection.Close();
             }
-
-            return results;
-           
         }
     }
-
-
-*/
+}

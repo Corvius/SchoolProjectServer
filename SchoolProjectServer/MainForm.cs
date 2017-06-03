@@ -17,7 +17,7 @@ namespace SchoolProjectServer
     public partial class MainForm : Form
     {
         private const int maxTweetsToFetch = 100;
-        private int timerInterval = 180;
+        private int timerIntervalSeconds = 20;
 
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
@@ -35,7 +35,6 @@ namespace SchoolProjectServer
 
             txtServerURL.Text = SQLConnector.defaultServerURL;
             txtServerPort.Text = SQLConnector.defaultServerPort;
-            sqlDBConnection = new SQLConnector();
 
             SetupDataGrid();
 
@@ -46,18 +45,21 @@ namespace SchoolProjectServer
 
         private void SetupDataGrid()
         {
+            int scrollBarOffset = SystemInformation.VerticalScrollBarWidth - 5;
             dgwStyleElements.AutoGenerateColumns = false;
             dgwStyleElements.ColumnCount = 2;
+            dgwStyleElements.ScrollBars = ScrollBars.Vertical;
 
             dgwStyleElements.Columns[0].Name = "original";
             dgwStyleElements.Columns[0].HeaderText = "Original";
             dgwStyleElements.Columns[0].DataPropertyName = "Original";
-            dgwStyleElements.Columns[0].Width = dgwStyleElements.Width / 2;
+            dgwStyleElements.Columns[0].Width = (dgwStyleElements.Width / 2) - scrollBarOffset;
 
             dgwStyleElements.Columns[1].Name = "replacement";
             dgwStyleElements.Columns[1].HeaderText = "Replacement";
             dgwStyleElements.Columns[1].DataPropertyName = "Replacement";
-            dgwStyleElements.Columns[1].Width = dgwStyleElements.Width / 2;
+            dgwStyleElements.Columns[1].Width = (dgwStyleElements.Width / 2) + scrollBarOffset;
+            
         }
 
         private void UpdateServerAddress()
@@ -77,48 +79,45 @@ namespace SchoolProjectServer
         private void MainForm_Shown(object sender, EventArgs e)
         {
             // Timer setup
-            tmrRecheckTweets.Interval = timerInterval * 1000; // 5 minutes
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer interval is set to " + timerInterval.ToString() + " seconds");
+            tmrRecheckTweets.Interval = timerIntervalSeconds * 1000;
+            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer interval is set to " + timerIntervalSeconds.ToString() + " seconds");
 
             tmrRecheckTweets.Start();
             tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has started!");
 
             connectionServer = new TTSConnectionServer(this);
 
-            // TODO: Fix multithreading and remove these two lines
-            btConnectToDatabase.PerformClick();
-            tmrRecheckTweets_Tick(this, new EventArgs());
-
-            //connectionServer.StartListening();
             listenerThread = new Thread(connectionServer.StartListening);
             listenerThread.Start();
             
-            //Task.Factory.StartNew(() => { runX(); }).Wait();
-        }
-
-        private void runX()
-        {
-            connectionServer.StartListening();
         }
         
         private void tmrRecheckTweets_Tick(object sender, EventArgs e)
         {
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has expired! Trying to fetch tweets!");
-
             if (IsConnectionEstablished)
             {
+                this.Log(LogExtension.LogLevels.Info, "Trying to fetch and update tweets!");
+
                 //Start checking on a separate thread
-                Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
-                this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
+                if (sqlDBConnection.isDbConnectionAvailable())
+                {
+                    Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
+                    this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
+                }
+                else
+                {
+                    btResetConnectionFields.PerformClick();
+                }
             }
             else
-                this.Log(LogExtension.LogLevels.Warning, "DB connection is not available, skipping tweet update!");
+                this.Log(LogExtension.LogLevels.Warning, "DB connection is not available, skipping automatic tweet update!");
         }
 
         private void TweetCheck()
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
             sqlDBConnection.UpdateTweets(tweets);
+            
         }
 
         private void LoadStyleComponents(string styleName)
@@ -277,11 +276,9 @@ namespace SchoolProjectServer
                     break;
             }
 
-            if (sqlDBConnection.AddNewStyle(styleName))
-            {
-                RefreshStyleList();
-                cbStyles.SelectedIndex = 0;
-            }
+            sqlDBConnection.AddNewStyle(styleName);
+            RefreshStyleList();
+            cbStyles.SelectedIndex = 0;
         }
 
         private void btRemoveStyle_Click(object sender, EventArgs e)
@@ -292,23 +289,24 @@ namespace SchoolProjectServer
                 string message = "Are you sure you want to remove the style '" + styleName + "'?";
                 DialogResult removeResult = MessageBox.Show(message, "Remove style?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (removeResult == DialogResult.Yes)
-                    if (sqlDBConnection.RemoveStyle(styleName))
-                    {
-                        RefreshStyleList();
-                        if (cbStyles.Items.Count > 0)
-                            cbStyles.SelectedIndex = 0;
-                    }
+                {
+                    sqlDBConnection.RemoveStyle(styleName);
+                    RefreshStyleList();
+                    if (cbStyles.Items.Count > 0)
+                        cbStyles.SelectedIndex = 0;
+                }
             }
         }
 
         private void btConnectToDatabase_Click(object sender, EventArgs e)
         {
             string urlMessage = (txtServerPort.Text != string.Empty) ? txtServerURL.Text + ":" + txtServerPort.Text : txtServerURL.Text;
+            this.Log(LogExtension.LogLevels.Info, "Trying to build connection to " + urlMessage);
+
+            sqlDBConnection = new SQLConnector();
 
             if (sqlDBConnection.BuildConnection(txtServerURL.Text, txtServerPort.Text))
             {
-                this.Log(LogExtension.LogLevels.Info, "Building connection to " + urlMessage);
-
                 RefreshStyleList();
                 cbStyles.SelectedIndex = 0;
 
@@ -316,20 +314,16 @@ namespace SchoolProjectServer
                 IsConnectionEstablished = true;
                 EnableStyleComponents();
             }
-            else
-            {
-                this.Log(LogExtension.LogLevels.Error, "Unable to build connection to " + urlMessage + "!");
-            }
         }
 
         private void btResetConnectionFields_Click(object sender, EventArgs e)
         {
             IsConnectionEstablished = false;
             sqlDBConnection = null;
-            btConnectToDatabase.Text = "Create DB connection!";
+            btConnectToDatabase.Text = "Create DB connection";
             DisableStyleComponents();
 
-            this.Log(LogExtension.LogLevels.Info, "Reseting connection");
+            this.Log(LogExtension.LogLevels.Info, "Connection closed");
         }
 
         private void btClearImage_Click(object sender, EventArgs e)
@@ -351,14 +345,14 @@ namespace SchoolProjectServer
             LoadStyleComponents(styleName);
         }
 
-    private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             bsGridBinder.EndEdit();
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            listenerThread.Abort();
+            listenerThread.Interrupt();
         }
     }
 }
