@@ -22,7 +22,7 @@ namespace SchoolProjectServer
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
 
-        private DataSet tweetStyleData;
+        private DataSet tweetStyleDataX;
         private Twitter twitter = new Twitter();
         private BindingSource bsGridBinder = new BindingSource();
         private TTSConnectionServer connectionServer;
@@ -59,7 +59,7 @@ namespace SchoolProjectServer
             dgwStyleElements.Columns[1].HeaderText = "Replacement";
             dgwStyleElements.Columns[1].DataPropertyName = "Replacement";
             dgwStyleElements.Columns[1].Width = (dgwStyleElements.Width / 2) + scrollBarOffset;
-            
+
         }
 
         private void UpdateServerAddress()
@@ -89,9 +89,9 @@ namespace SchoolProjectServer
 
             listenerThread = new Thread(connectionServer.StartListening);
             listenerThread.Start();
-            
+
         }
-        
+
         private void tmrRecheckTweets_Tick(object sender, EventArgs e)
         {
             if (IsConnectionEstablished)
@@ -99,15 +99,8 @@ namespace SchoolProjectServer
                 this.Log(LogExtension.LogLevels.Info, "Trying to fetch and update tweets!");
 
                 //Start checking on a separate thread
-                if (sqlDBConnection.isDbConnectionAvailable())
-                {
-                    Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
-                    this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
-                }
-                else
-                {
-                    btResetConnectionFields.PerformClick();
-                }
+                Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
+                this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
             }
             else
                 this.Log(LogExtension.LogLevels.Warning, "DB connection is not available, skipping automatic tweet update!");
@@ -116,41 +109,35 @@ namespace SchoolProjectServer
         private void TweetCheck()
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
-            sqlDBConnection.UpdateTweets(tweets);
-            
+            //sqlDBConnection.UpdateTweets(tweets);
+
         }
 
         private void LoadStyleComponents(string styleName)
         {
-            tweetStyleData = sqlDBConnection.GetTweetStyles();
+            tweetStyleDataX = null;
+            List<TweetStyle> tweetStyles = sqlDBConnection.GetTweetStyles();
+            connectionServer.UpdateTweetStyles(tweetStyles);
 
-            string imageLocation = tweetStyleData.Tables["StyleNames"]
-                .Rows
-                .Cast<DataRow>()
-                .Where(row => row["StyleName"].ToString() == styleName)
-                .Select(row => row["StyleImage"].ToString()).FirstOrDefault();
-
-            if (imageLocation != "")
+            foreach (TweetStyle tweetStyle in tweetStyles)
             {
-                pbStyleImage.Load(imageLocation);
-                txtImagePath.Text = imageLocation;
+                if (tweetStyle.styleName == styleName)
+                {
+                    if (tweetStyle.styleImageURL != "")
+                    {
+                        pbStyleImage.Load(tweetStyle.styleImageURL);
+                        txtImagePath.Text = tweetStyle.styleImageURL;
+                    }
+                    else
+                    {
+                        pbStyleImage.Image = null;
+                        txtImagePath.Text = "";
+                    }
+                    break;
+                }
             }
-            else
-            {
-                pbStyleImage.Image = null;
-                txtImagePath.Text = "";
-            }
 
-            List<TweetStyle> styleQuery = tweetStyleData.Tables["StyleNames"]
-                .Rows
-                .Cast<DataRow>()
-                .Select(row => new TweetStyle(row["StyleName"].ToString(), row["StyleImage"].ToString())).ToList();
-            
-            connectionServer.UpdateTweetStyles(styleQuery);
-
-            DataTable selectedStyle = tweetStyleData.Tables[styleName];
-
-            bsGridBinder.DataSource = selectedStyle;
+            bsGridBinder.DataSource = sqlDBConnection.GetTweetStyleProperties(styleName);
             dgwStyleElements.DataSource = bsGridBinder;
         }
 
@@ -199,26 +186,17 @@ namespace SchoolProjectServer
 
         private void RefreshStyleList()
         {
-            tweetStyleData = sqlDBConnection.GetTweetStyles();
+            List<TweetStyle> tweetStyles = sqlDBConnection.GetTweetStyles();
 
             cbStyles.DataSource = null;
-
-            List<string> styleNames = tweetStyleData.Tables["StyleNames"]
-                .Rows
-                .Cast<DataRow>()
-                .Select(row => row["StyleName"].ToString()).ToList();
-
+            List<string> styleNames = tweetStyles
+                .Select(style => style.styleName).ToList();
             cbStyles.DataSource = styleNames;
         }
 
         internal List<StyleProperty> GetStyleProperties(string styleName)
         {
-            List<StyleProperty> properties = tweetStyleData.Tables[styleName]
-                .Rows
-                .Cast<DataRow>()
-                .Select(row => new StyleProperty(row["Original"].ToString(), row["Replacement"].ToString())).ToList();
-
-            return properties;
+            return sqlDBConnection.GetTweetStyleProperties(styleName);
         }
 
         #region Event Handlers
@@ -257,7 +235,7 @@ namespace SchoolProjectServer
                 DialogResult inputResult = inputBox.ShowDialog();
                 styleName = inputBox.StyleName;
 
-                string nameQuery = tweetStyleData.Tables["StyleNames"]
+                string nameQuery = tweetStyleDataX.Tables["StyleNames"]
                     .Rows
                     .Cast<DataRow>()
                     .Where(row => row["StyleName"].ToString() == styleName)
@@ -305,15 +283,12 @@ namespace SchoolProjectServer
 
             sqlDBConnection = new SQLConnector();
 
-            if (sqlDBConnection.BuildConnection(txtServerURL.Text, txtServerPort.Text))
-            {
-                RefreshStyleList();
-                cbStyles.SelectedIndex = 0;
+            RefreshStyleList();
+            cbStyles.SelectedIndex = 0;
 
-                btConnectToDatabase.Text = "Connected!";
-                IsConnectionEstablished = true;
-                EnableStyleComponents();
-            }
+            btConnectToDatabase.Text = "Connected!";
+            IsConnectionEstablished = true;
+            EnableStyleComponents();
         }
 
         private void btResetConnectionFields_Click(object sender, EventArgs e)

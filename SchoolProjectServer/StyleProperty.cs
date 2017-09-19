@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchoolProjectServer
 {
-    class StyleProperty
+    public class StyleProperty
     {
         public string Original { get; set; }
         public string Replacement { get; set; }

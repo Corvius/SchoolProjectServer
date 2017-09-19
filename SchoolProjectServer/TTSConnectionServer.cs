@@ -301,8 +301,8 @@ namespace SchoolProjectServer
             lSw.WriteLine(mTweetStyles.Count);
             foreach (var Style in mTweetStyles)
             {
-                lSw.WriteLine(Style.mStyleName);
-                lSw.WriteLine(Style.mStyleImageURL);
+                lSw.WriteLine(Style.styleName);
+                lSw.WriteLine(Style.styleImageURL);
             }
             lSw.WriteLine(EOF_STRING);
             lSw.Flush();
@@ -458,11 +458,11 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
-            List<Tweet> tweets = mOwner.sqlDBConnection.GetTweets(TWEETS_TO_SEND);
+            List<Tweet> tweets = mOwner.sqlDBConnection.GetTweetsfromDatabase(TWEETS_TO_SEND);
 
             TweetStyle selectedStyle = null;
             foreach (TweetStyle style in mTweetStyles)
-                if (style.mStyleName == pStyleName)
+                if (style.styleName == pStyleName)
                 {
                     selectedStyle = style;
                     break;
@@ -472,7 +472,7 @@ namespace SchoolProjectServer
             {
                 string decodedTweet = Tweet.Base64Decode(tweet.TweetText);
 
-                foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.mStyleName))
+                foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.styleName))
                 {
                     // Exact search, narrow search pattern
                     string replacePattern = @"\b" + property.Original + @"\b";
