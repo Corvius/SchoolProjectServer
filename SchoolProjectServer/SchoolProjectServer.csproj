@@ -82,6 +82,7 @@
     <Compile Include="TTSConnectionServer.cs" />
     <Compile Include="Tweet.cs" />
     <Compile Include="TweetStyle.cs" />
+    <Compile Include="TweetUpdateThread.cs" />
     <Compile Include="Twitter.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
