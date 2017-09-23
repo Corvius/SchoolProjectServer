@@ -22,7 +22,6 @@ namespace SchoolProjectServer
         private bool IsConnectionEstablished = false;
         private Thread listenerThread;
 
-        private DataSet tweetStyleDataX;
         private Twitter twitter = new Twitter();
         private BindingSource bsGridBinder = new BindingSource();
         private TTSConnectionServer connectionServer;
@@ -109,13 +108,11 @@ namespace SchoolProjectServer
         private void TweetCheck()
         {
             List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
-            //sqlDBConnection.UpdateTweets(tweets);
-
+            sqlDBConnection.AddTweetsToDatabase(tweets);
         }
 
         private void LoadStyleComponents(string styleName)
         {
-            tweetStyleDataX = null;
             List<TweetStyle> tweetStyles = sqlDBConnection.GetTweetStyles();
             connectionServer.UpdateTweetStyles(tweetStyles);
 
@@ -137,7 +134,10 @@ namespace SchoolProjectServer
                 }
             }
 
-            bsGridBinder.DataSource = sqlDBConnection.GetTweetStyleProperties(styleName);
+            List<StyleProperty> properties = sqlDBConnection.GetTweetStyleProperties(styleName);
+            if (properties.Count == 0)
+                properties.Add(new StyleProperty("", ""));
+            bsGridBinder.DataSource = properties;
             dgwStyleElements.DataSource = bsGridBinder;
         }
 
@@ -235,13 +235,7 @@ namespace SchoolProjectServer
                 DialogResult inputResult = inputBox.ShowDialog();
                 styleName = inputBox.StyleName;
 
-                string nameQuery = tweetStyleDataX.Tables["StyleNames"]
-                    .Rows
-                    .Cast<DataRow>()
-                    .Where(row => row["StyleName"].ToString() == styleName)
-                    .Select(row => row["StyleName"].ToString()).FirstOrDefault();
-
-                if (nameQuery != null)
+                if (cbStyles.Items.Contains(styleName))
                 {
                     MessageBox.Show("There is already a style called " + styleName);
                     continue;
@@ -315,8 +309,8 @@ namespace SchoolProjectServer
 
         private void btUpdateServer_Click(object sender, EventArgs e)
         {
-            sqlDBConnection.UpdateStyle((DataTable)bsGridBinder.DataSource);
             string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
+            sqlDBConnection.UpdateStyle(styleName, (List<StyleProperty>)bsGridBinder.DataSource);
             LoadStyleComponents(styleName);
         }
 

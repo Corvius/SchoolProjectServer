@@ -458,7 +458,7 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
-            List<Tweet> tweets = mOwner.sqlDBConnection.GetTweetsfromDatabase(TWEETS_TO_SEND);
+            List<Tweet> tweets = mOwner.sqlDBConnection.GetTweetsFromDatabase(TWEETS_TO_SEND);
 
             TweetStyle selectedStyle = null;
             foreach (TweetStyle style in mTweetStyles)

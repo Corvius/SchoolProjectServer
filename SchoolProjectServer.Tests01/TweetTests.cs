@@ -16,7 +16,7 @@ namespace SchoolProjectServer.Tests
         [ClassInitialize]
         public static void InitializeTests(TestContext tc)
         {
-            tw = new Tweet(9999, "tweetText", new DateTime(4, 4, 4, 4, 4, 4), 4, 4);
+            tw = new Tweet(9999, "tweetText", new DateTime(1, 2, 3, 4, 5, 6), 4, 4);
         }
         
         [TestMethod]
@@ -24,7 +24,12 @@ namespace SchoolProjectServer.Tests
         {
             Assert.IsTrue(tw.TweetID == 9999);
             Assert.IsTrue(tw.TweetText == "tweetText");
-            Assert.IsTrue(tw.TweetTimeStamp.ToString() == "0004. 04. 04. 4:04:04");
+            Assert.IsTrue(tw.TweetTimeStamp.Year == 1);
+            Assert.IsTrue(tw.TweetTimeStamp.Month == 2);
+            Assert.IsTrue(tw.TweetTimeStamp.Day == 3);
+            Assert.IsTrue(tw.TweetTimeStamp.Hour == 4);
+            Assert.IsTrue(tw.TweetTimeStamp.Minute == 5);
+            Assert.IsTrue(tw.TweetTimeStamp.Second == 6);
             Assert.IsTrue(tw.TweetUpvotes == 4);
             Assert.IsTrue(tw.TweetDownvotes == 4);
         }
