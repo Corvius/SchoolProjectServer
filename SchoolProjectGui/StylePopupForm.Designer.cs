@@ -1,4 +1,4 @@
-﻿namespace SchoolProjectServer
+﻿namespace SchoolProjectGui
 {
     partial class StylePopupForm
     {

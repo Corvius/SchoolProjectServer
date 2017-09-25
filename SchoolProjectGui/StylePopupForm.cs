@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace SchoolProjectServer
+namespace SchoolProjectGui
 {
     public partial class StylePopupForm : Form
     {

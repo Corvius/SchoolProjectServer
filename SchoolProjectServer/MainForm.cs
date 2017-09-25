@@ -1,16 +1,11 @@
-﻿using CustomLog;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using System.Data;
 using System.Drawing;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Net.Sockets;
 using System.Net;
 using System.Threading;
-using System.Xml;
-using System.Text.RegularExpressions;
+using System.ComponentModel;
 
 namespace SchoolProjectServer
 {
@@ -18,48 +13,98 @@ namespace SchoolProjectServer
     {
         private const int maxTweetsToFetch = 100;
         private int timerIntervalSeconds = 3600;
+        private bool isServerRunning = false;
 
-        private bool IsConnectionEstablished = false;
-        private Thread listenerThread;
+        internal BackgroundWorker tweetUpdaterThread;
+        internal BackgroundWorker listenerThread;
 
         private Twitter twitter = new Twitter();
         private BindingSource bsGridBinder = new BindingSource();
         private TTSConnectionServer connectionServer;
 
-        internal SQLConnector sqlDBConnection = null;
+        internal ServerSQLConnector sqlDBConnection = null;
+        internal RichTextBoxExt txtConsoleOutput;
+
 
         public MainForm()
         {
             InitializeComponent();
-
-            txtServerURL.Text = SQLConnector.defaultServerURL;
-            txtServerPort.Text = SQLConnector.defaultServerPort;
-
-            SetupDataGrid();
-
-            DisableStyleComponents();
-
-            UpdateServerAddress();
+            InitializeTweetUpdaterThread();
+            InitializeListenerThread();
+            txtServerURL.Text = ServerSQLConnector.defaultServerURL;
         }
 
-        private void SetupDataGrid()
+        # region TweetUpdaterThread
+        private void InitializeTweetUpdaterThread()
         {
-            int scrollBarOffset = SystemInformation.VerticalScrollBarWidth - 5;
-            dgwStyleElements.AutoGenerateColumns = false;
-            dgwStyleElements.ColumnCount = 2;
-            dgwStyleElements.ScrollBars = ScrollBars.Vertical;
-
-            dgwStyleElements.Columns[0].Name = "original";
-            dgwStyleElements.Columns[0].HeaderText = "Original";
-            dgwStyleElements.Columns[0].DataPropertyName = "Original";
-            dgwStyleElements.Columns[0].Width = (dgwStyleElements.Width / 2) - scrollBarOffset;
-
-            dgwStyleElements.Columns[1].Name = "replacement";
-            dgwStyleElements.Columns[1].HeaderText = "Replacement";
-            dgwStyleElements.Columns[1].DataPropertyName = "Replacement";
-            dgwStyleElements.Columns[1].Width = (dgwStyleElements.Width / 2) + scrollBarOffset;
-
+            tweetUpdaterThread = new BackgroundWorker();
+            tweetUpdaterThread.ProgressChanged += tweetUpdaterThread_ProgressChanged;
+            tweetUpdaterThread.DoWork += tweetUpdaterThread_DoWork;
+            tweetUpdaterThread.RunWorkerCompleted += tweetUpdaterThread_RunWorkerCompleted;
+            tweetUpdaterThread.WorkerReportsProgress = true;
+            tweetUpdaterThread.WorkerSupportsCancellation = true;
         }
+
+        private void tweetUpdaterThread_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            txtConsoleOutput.Append(Color.Blue, "TweetUpdater", " thread has ");
+            if (e.Cancelled)
+                txtConsoleOutput.Append("been ", Color.Red, "interrupted");
+            else
+            {
+                txtConsoleOutput.AppendLine(Color.ForestGreen, "finished");
+                txtConsoleOutput.AppendLine("Tweet updates completed!");
+            }
+        }
+
+        private void tweetUpdaterThread_DoWork(object sender, DoWorkEventArgs e)
+        {
+            List<Tweet> tweets = twitter.GetTweets("RealDonaldTrump", maxTweetsToFetch).Result;
+            sqlDBConnection.AddTweetsToDatabase(tweets);
+        }
+
+        private void tweetUpdaterThread_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            txtConsoleOutput.AppendLine(Color.ForestGreen, "TweetUpdater", " - ", e.UserState.ToString());
+        }
+        #endregion
+
+        # region ListenerThread
+        private void InitializeListenerThread()
+        {
+            listenerThread = new BackgroundWorker();
+            listenerThread.ProgressChanged += listenerThread_ProgressChanged;
+            listenerThread.DoWork += listenerThread_DoWork;
+            listenerThread.RunWorkerCompleted += listenerThread_RunWorkerCompleted;
+            listenerThread.WorkerReportsProgress = true;
+            listenerThread.WorkerSupportsCancellation = true;
+        }
+
+        private void listenerThread_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            txtConsoleOutput.Append(Color.Blue, "Listener", " thread has ");
+            if (e.Cancelled)
+                txtConsoleOutput.Append("been ", Color.Red, "interrupted");
+            else
+                txtConsoleOutput.AppendLine(Color.ForestGreen, "finished");
+        }
+
+        private void listenerThread_DoWork(object sender, DoWorkEventArgs e)
+        {
+            connectionServer.StartListening();
+            while (true)
+                if (listenerThread.CancellationPending)
+                {
+                    e.Cancel = true;
+                    break;
+                }
+        }
+
+        private void listenerThread_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            txtConsoleOutput.AppendLine(Color.ForestGreen, "Listener", " - ", e.UserState.ToString());
+        }
+        #endregion
 
         private void UpdateServerAddress()
         {
@@ -67,42 +112,23 @@ namespace SchoolProjectServer
             string remoteIP = new WebClient().DownloadString("http://distantworlds.org/tts/getaddress.php");
 
             if (selfIP != remoteIP)
-            {
-                string setIpUrl = string.Format("http://distantworlds.org/tts/setaddress.php?address={0}", selfIP);
-
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(setIpUrl);
-                WebResponse res = request.GetResponse();
-            }
+                PushNewAddress(selfIP);
         }
 
-        private void MainForm_Shown(object sender, EventArgs e)
+        private void PushNewAddress(string newIP)
         {
-            // Timer setup
-            tmrRecheckTweets.Interval = timerIntervalSeconds * 1000;
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer interval is set to " + timerIntervalSeconds.ToString() + " seconds");
+            string setIpUrl = string.Format("http://distantworlds.org/tts/setaddress.php?address={0}", newIP);
 
-            tmrRecheckTweets.Start();
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Timer has started!");
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(setIpUrl);
+            WebResponse res = request.GetResponse();
 
-            connectionServer = new TTSConnectionServer(this);
-
-            listenerThread = new Thread(connectionServer.StartListening);
-            listenerThread.Start();
-
+            txtConsoleOutput.AppendLine("Server address updated in remote directory to: " + newIP);
         }
 
         private void tmrRecheckTweets_Tick(object sender, EventArgs e)
         {
-            if (IsConnectionEstablished)
-            {
-                this.Log(LogExtension.LogLevels.Info, "Trying to fetch and update tweets!");
-
-                //Start checking on a separate thread
-                Task.Factory.StartNew(() => { TweetCheck(); }).Wait();
-                this.Log(LogExtension.LogLevels.Info, "Tweet updates completed!");
-            }
-            else
-                this.Log(LogExtension.LogLevels.Warning, "DB connection is not available, skipping automatic tweet update!");
+            txtConsoleOutput.AppendLine(Color.Blue, "TweetUpdater", " thread has ", Color.ForestGreen, "started");
+            tweetUpdaterThread.RunWorkerAsync();
         }
 
         private void TweetCheck()
@@ -111,218 +137,92 @@ namespace SchoolProjectServer
             sqlDBConnection.AddTweetsToDatabase(tweets);
         }
 
-        private void LoadStyleComponents(string styleName)
+        public List<TweetStyle> GetTweetStyles()
         {
-            List<TweetStyle> tweetStyles = sqlDBConnection.GetTweetStyles();
-            connectionServer.UpdateTweetStyles(tweetStyles);
-
-            foreach (TweetStyle tweetStyle in tweetStyles)
-            {
-                if (tweetStyle.styleName == styleName)
-                {
-                    if (tweetStyle.styleImageURL != "")
-                    {
-                        pbStyleImage.Load(tweetStyle.styleImageURL);
-                        txtImagePath.Text = tweetStyle.styleImageURL;
-                    }
-                    else
-                    {
-                        pbStyleImage.Image = null;
-                        txtImagePath.Text = "";
-                    }
-                    break;
-                }
-            }
-
-            List<StyleProperty> properties = sqlDBConnection.GetTweetStyleProperties(styleName);
-            if (properties.Count == 0)
-                properties.Add(new StyleProperty("", ""));
-            bsGridBinder.DataSource = properties;
-            dgwStyleElements.DataSource = bsGridBinder;
-        }
-
-        private void EnableStyleComponents()
-        {
-            SetStyleEditabiliy(true);
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Style editing enabled");
-        }
-
-        private void DisableStyleComponents()
-        {
-            SetStyleEditabiliy(false);
-            tmrRecheckTweets.Log(LogExtension.LogLevels.Info, "Style editing disabled");
-        }
-
-        private void SetStyleEditabiliy(bool Editable)
-        {
-            dgwStyleElements.Enabled = Editable;
-            if (dgwStyleElements.Enabled)
-            {
-                //TODO: Make this more visual
-                dgwStyleElements.DefaultCellStyle.BackColor = SystemColors.Window;
-                dgwStyleElements.DefaultCellStyle.ForeColor = SystemColors.ControlText;
-                dgwStyleElements.ColumnHeadersDefaultCellStyle.BackColor = SystemColors.Window;
-                dgwStyleElements.ColumnHeadersDefaultCellStyle.ForeColor = SystemColors.ControlText;
-            }
-            else
-            {
-                dgwStyleElements.DefaultCellStyle.BackColor = SystemColors.Control;
-                dgwStyleElements.DefaultCellStyle.ForeColor = SystemColors.GrayText;
-                dgwStyleElements.ColumnHeadersDefaultCellStyle.BackColor = SystemColors.Control;
-                dgwStyleElements.ColumnHeadersDefaultCellStyle.ForeColor = SystemColors.GrayText;
-
-            }
-
-            cbStyles.Enabled = Editable;
-            pbStyleImage.Enabled = Editable;
-            txtImagePath.Enabled = Editable;
-            btLoadImageURL.Enabled = Editable;
-            btClearImage.Enabled = Editable;
-            btAddNewStyle.Enabled = Editable;
-            btRemoveStyle.Enabled = Editable;
-            btReloadStyle.Enabled = Editable;
-            btUpdateServer.Enabled = Editable;
-        }
-
-        private void RefreshStyleList()
-        {
-            List<TweetStyle> tweetStyles = sqlDBConnection.GetTweetStyles();
-
-            cbStyles.DataSource = null;
-            List<string> styleNames = tweetStyles
-                .Select(style => style.styleName).ToList();
-            cbStyles.DataSource = styleNames;
-        }
-
-        internal List<StyleProperty> GetStyleProperties(string styleName)
-        {
-            return sqlDBConnection.GetTweetStyleProperties(styleName);
+            return sqlDBConnection.GetTweetStyles();
         }
 
         #region Event Handlers
-        private void btReloadStyle_Click(object sender, EventArgs e)
+        private void btStartServer_Click(object sender, EventArgs e)
         {
-            string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
-            if (styleName != string.Empty)
-                LoadStyleComponents(styleName);
-        }
-
-        private void btOpenImage_Click(object sender, EventArgs e)
-        {
-            try
+            if (isServerRunning)
             {
-                pbStyleImage.Load(txtImagePath.Text);
-            }
-            catch (InvalidOperationException)
-            {
-                string message = (txtImagePath.Text == string.Empty) ? "<No URL specified>" : txtImagePath.Text;
-                this.Log(LogExtension.LogLevels.Error, "Unable to open image from " + message + "!");
-            }
-        }
-
-        private void btRemoveImage_Click(object sender, EventArgs e)
-        {
-            pbStyleImage.Image = null;
-            txtImagePath.Text = "";
-        }
-
-        private void btAddNewStyle_Click(object sender, EventArgs e)
-        {
-            string styleName = "";
-            while (true)
-            {
-                StylePopupForm inputBox = new StylePopupForm();
-                DialogResult inputResult = inputBox.ShowDialog();
-                styleName = inputBox.StyleName;
-
-                if (cbStyles.Items.Contains(styleName))
-                {
-                    MessageBox.Show("There is already a style called " + styleName);
-                    continue;
-                }
-
-                if (inputResult == DialogResult.Cancel)
-                    return;
-
-                if (inputResult == DialogResult.OK)
-                    break;
+                txtConsoleOutput.AppendLine("Shutting down server...");
+                this.Close();
+                return;
             }
 
-            sqlDBConnection.AddNewStyle(styleName);
-            RefreshStyleList();
-            cbStyles.SelectedIndex = 0;
-        }
+            txtConsoleOutput.Enabled = true;
 
-        private void btRemoveStyle_Click(object sender, EventArgs e)
-        {
-            string styleName = cbStyles.Items[cbStyles.SelectedIndex].ToString();
-            if (styleName != string.Empty)
-            {
-                string message = "Are you sure you want to remove the style '" + styleName + "'?";
-                DialogResult removeResult = MessageBox.Show(message, "Remove style?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (removeResult == DialogResult.Yes)
-                {
-                    sqlDBConnection.RemoveStyle(styleName);
-                    RefreshStyleList();
-                    if (cbStyles.Items.Count > 0)
-                        cbStyles.SelectedIndex = 0;
-                }
-            }
-        }
+            UpdateServerAddress();
+            sqlDBConnection = new ServerSQLConnector();
 
-        private void btConnectToDatabase_Click(object sender, EventArgs e)
-        {
-            string urlMessage = (txtServerPort.Text != string.Empty) ? txtServerURL.Text + ":" + txtServerPort.Text : txtServerURL.Text;
-            this.Log(LogExtension.LogLevels.Info, "Trying to build connection to " + urlMessage);
+            txtConsoleOutput.AppendLine("Trying to build connection to ", Color.Blue, txtServerURL.Text);
 
-            sqlDBConnection = new SQLConnector();
+            // Timer setup
+            tmrRecheckTweets.Interval = timerIntervalSeconds * 1000;
+            txtConsoleOutput.AppendLine("Timer interval is set to ", Color.Blue, timerIntervalSeconds.ToString(), " seconds");
 
-            RefreshStyleList();
-            cbStyles.SelectedIndex = 0;
+            tmrRecheckTweets.Start();
+            txtConsoleOutput.AppendLine("Timer has started!");
 
-            btConnectToDatabase.Text = "Connected!";
-            IsConnectionEstablished = true;
-            EnableStyleComponents();
-        }
+            connectionServer = new TTSConnectionServer(this);
 
-        private void btResetConnectionFields_Click(object sender, EventArgs e)
-        {
-            IsConnectionEstablished = false;
-            sqlDBConnection = null;
-            btConnectToDatabase.Text = "Create DB connection";
-            DisableStyleComponents();
+            listenerThread.RunWorkerAsync();
+            txtConsoleOutput.AppendLine("Server is now ", Color.LawnGreen, "LISTENING", " on port ", Color.Blue, "7756"); //TODO: Add reference to port here
 
-            this.Log(LogExtension.LogLevels.Info, "Connection closed");
-        }
-
-        private void btClearImage_Click(object sender, EventArgs e)
-        {
-            pbStyleImage.Image = null;
-        }
-
-        private void cbStyles_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
-            if (styleName != string.Empty)
-                LoadStyleComponents(styleName);
-        }
-
-        private void btUpdateServer_Click(object sender, EventArgs e)
-        {
-            string styleName = cbStyles.GetItemText(cbStyles.SelectedItem);
-            sqlDBConnection.UpdateStyle(styleName, (List<StyleProperty>)bsGridBinder.DataSource);
-            LoadStyleComponents(styleName);
-        }
-
-        private void dgwStyleElements_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-        {
-            bsGridBinder.EndEdit();
+            btStartServer.Text = "Stop server and exit";
+            isServerRunning = true;
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            listenerThread.Interrupt();
+            if (isServerRunning)
+                listenerThread.CancelAsync();
+        }
+    }
+    #endregion
+
+    public class RichTextBoxExt : RichTextBox
+    {
+        public int m_MaxLines { get; }
+
+        public RichTextBoxExt()
+        {
+            m_MaxLines = 50;
+        }
+
+        public void AppendLine(params object[] textParams)
+        {
+            Append("[" + DateTime.Now.ToString() + "]:  ");
+            object[] newParams = new object[textParams.Length + 1];
+            Array.Copy(textParams, newParams, textParams.Length);
+            newParams[newParams.Length - 1] = "\n";
+            Append(newParams);
+        }
+
+        public void Append(params object[] textParams)
+        {
+            SelectionStart = TextLength;
+            SelectionLength = 0;
+
+            foreach (object textParam in textParams)
+            {
+                if (textParam is Color)
+                    SelectionColor = (Color)textParam;
+                else
+                {
+                    AppendText(textParam.ToString());
+                    SelectionColor = ForeColor;
+                }
+            }
+
+            if (Lines.Length > m_MaxLines)
+            {
+                SelectionStart = GetFirstCharIndexFromLine(0);
+                SelectionLength = Lines[0].Length + 1;
+                SelectedText = System.String.Empty;
+            }
         }
     }
 }
-#endregion

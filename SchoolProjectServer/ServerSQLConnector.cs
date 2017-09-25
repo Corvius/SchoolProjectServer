@@ -3,12 +3,10 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using CustomLog;
 
 namespace SchoolProjectServer
 {
-    class SQLConnector
+    class ServerSQLConnector
     {
         private string connectionString;
 
@@ -19,7 +17,7 @@ namespace SchoolProjectServer
         internal readonly static string defaultServerURL = "trumptweetstyle.database.windows.net";
         internal readonly static string defaultServerPort = ""; // 1433
 
-        internal SQLConnector()
+        internal ServerSQLConnector()
         {
             BuildConnectionString();
         }
@@ -175,72 +173,6 @@ namespace SchoolProjectServer
                     (string)row["Replacement"])).ToList();
 
             return tweetPropertyQuery;
-        }
-
-        internal void AddNewStyle(string styleName)
-        {
-            string createTableCommand = string.Format(
-                "CREATE TABLE {0} (" +
-                "Original nvarchar(50) NOT NULL PRIMARY KEY, " +
-                "Replacement nvarchar(50) NOT NULL);", styleName.ToLower());
-
-            string updateTableCommand = string.Format(
-                "INSERT INTO dbo.styles (StyleName, StyleImage) VALUES ('{0}', '');", styleName);
-
-            using (SqlConnection sqlConnection = new SqlConnection(connectionString))
-            {
-                sqlConnection.Open();
-                using (SqlCommand command = new SqlCommand(createTableCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-
-                using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-            }
-
-            this.Log(LogExtension.LogLevels.Info, "Create/Update table command was successfully executed");
-        }
-
-        internal void RemoveStyle(string styleName)
-        {
-            string dropTableCommand = string.Format(
-                "DROP TABLE dbo.{0};", styleName.ToLower());
-
-            string updateTableCommand = string.Format(
-                "DELETE FROM dbo.styles WHERE StyleName = '{0}';", styleName);
-
-            using (SqlConnection sqlConnection = new SqlConnection(connectionString))
-            {
-                sqlConnection.Open();
-                using (SqlCommand command = new SqlCommand(dropTableCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-
-                using (SqlCommand command = new SqlCommand(updateTableCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-            }
-
-            this.Log(LogExtension.LogLevels.Info, "Drop/Update table command was successfully executed");
-        }
-
-        internal void UpdateStyle(string styleName, List<StyleProperty> properties)
-        {
-            string clearCommand = string.Format("TRUNCATE TABLE dbo.{0};", styleName);
-            string updateCommand = string.Format("INSERT INTO dbo.{0} (Original, Replacement) VALUES ", styleName);
-
-            foreach (StyleProperty property in properties)
-                updateCommand += string.Format("('{0}', '{1}'), ", property.Original, property.Replacement);
-            updateCommand = updateCommand.Remove(updateCommand.Length - 2);
-
-            using (SqlConnection sqlConnection = new SqlConnection(connectionString))
-            {
-                sqlConnection.Open();
-                using (SqlCommand command = new SqlCommand(clearCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-
-                using (SqlCommand command = new SqlCommand(updateCommand, sqlConnection))
-                    command.ExecuteNonQuery();
-            }
-
-            this.Log(LogExtension.LogLevels.Info, "Server was successfully updated");
         }
     }
 }

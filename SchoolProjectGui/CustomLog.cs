@@ -128,5 +128,32 @@ namespace CustomLog
             ((Form)sender).Tag = null;
         }
     }
+
+    public class RichTextBoxExt : RichTextBox
+    {
+        public int m_MaxLines { get; }
+
+        public RichTextBoxExt()
+        {
+            m_MaxLines = 50;
+        }
+
+        public void AppendText(string p_text, Color p_color)
+        {
+            SelectionStart = TextLength;
+            SelectionLength = 0;
+
+            SelectionColor = p_color;
+            AppendText(p_text);
+            SelectionColor = ForeColor;
+           
+            if (Lines.Length > m_MaxLines)
+            {
+                SelectionStart = GetFirstCharIndexFromLine(0);
+                SelectionLength = Lines[0].Length + 1;
+                SelectedText = System.String.Empty;
+            }
+        }
+    }
 }
 

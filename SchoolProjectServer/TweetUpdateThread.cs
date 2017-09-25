@@ -15,9 +15,9 @@ namespace SchoolProjectServer
         {
             // TODO: Move this to program.cs
             incrementerBW = new BackgroundWorker();
-            incrementerBW.ProgressChanged += Incrementer_ProgressChanged;
-            incrementerBW.DoWork += Incrementer_DoWork;
-            incrementerBW.RunWorkerCompleted += Incrementer_RunWorkerCompleted;
+            //incrementerBW.ProgressChanged += Incrementer_ProgressChanged;
+            //incrementerBW.DoWork += Incrementer_DoWork;
+            //incrementerBW.RunWorkerCompleted += Incrementer_RunWorkerCompleted;
             incrementerBW.WorkerReportsProgress = true;
             incrementerBW.WorkerSupportsCancellation = true;
         }

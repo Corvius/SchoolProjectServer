@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace SchoolProjectServer
+namespace SchoolProjectGui
 {
     public partial class CustomDataGridView : DataGridView
     {

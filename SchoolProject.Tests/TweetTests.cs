@@ -3,7 +3,7 @@ using Microsoft.Pex.Framework;
 using Microsoft.Pex.Framework.Validation;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace SchoolProjectServer.Tests
+namespace SchoolProject.Tests
 {
     [TestClass]
     [PexClass(typeof(SQLConnector))]

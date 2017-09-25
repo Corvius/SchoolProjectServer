@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{00612B8F-628E-408C-A662-2192AA632C8A}</ProjectGuid>
+    <ProjectGuid>{74FC4479-DBFE-413D-9235-807C9E6CADA8}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SchoolProjectServer</RootNamespace>
-    <AssemblyName>SchoolProjectServer</AssemblyName>
+    <AssemblyName>SchoolProjectGui</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -33,7 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>trump.ico</ApplicationIcon>
+    <ApplicationIcon>props.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -50,6 +50,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomDataGridView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="CustomDataGridView.Designer.cs">
+      <DependentUpon>CustomDataGridView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CustomLog.cs" />
+    <Compile Include="LineSeparator.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="LineSeparator.Designer.cs">
+      <DependentUpon>LineSeparator.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -58,13 +71,16 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ServerSQLConnector.cs" />
+    <Compile Include="SQLConnector.cs" />
+    <Compile Include="StylePopupForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StylePopupForm.Designer.cs">
+      <DependentUpon>StylePopupForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="StyleProperty.cs" />
-    <Compile Include="TTSConnectionServer.cs" />
     <Compile Include="Tweet.cs" />
     <Compile Include="TweetStyle.cs" />
-    <Compile Include="TweetUpdateThread.cs" />
-    <Compile Include="Twitter.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -77,6 +93,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="StylePopupForm.resx">
+      <DependentUpon>StylePopupForm.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -92,6 +111,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="props.ico" />
     <Content Include="trump.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

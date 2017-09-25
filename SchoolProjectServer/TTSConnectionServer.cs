@@ -135,6 +135,11 @@ namespace SchoolProjectServer
             mOwner = pOwner;
         }
 
+        public void ReportProgress(string message)
+        {
+            mOwner.listenerThread.ReportProgress(0, message);
+        }
+
         public void StartListening()
         {
             mLastStatus = "Building local endpoint";
@@ -164,6 +169,7 @@ namespace SchoolProjectServer
                 Socket lListenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 mIPEndPoint = new IPEndPoint(lIPAddress, COMMUNICATION_PORT);
                 mLastStatus = "Working as a server. Listening on port " + mIPEndPoint.Port.ToString();
+                ReportProgress(mLastStatus);
                 try
                 {
                     lListenerSocket.Bind(mIPEndPoint);
@@ -189,7 +195,7 @@ namespace SchoolProjectServer
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.ToString());
+                    ReportProgress(e.ToString()); // Console.WriteLine(e.ToString());
                 }
             }
             catch (SocketException ex)
@@ -222,6 +228,7 @@ namespace SchoolProjectServer
 
         public void ReadCallback(IAsyncResult AR)
         {
+            ReportProgress("ReadCallBack");
             try
             {
                 StateObject lStateObject = (StateObject)AR.AsyncState;
@@ -245,17 +252,20 @@ namespace SchoolProjectServer
                 }
                 else
                 {
+                    ReportProgress("Recieved zero bytes");
                     Console.WriteLine("itt van valami.");
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                ReportProgress("Error Detected: " + ex.Message);
                 Console.WriteLine("Error detected!");
             }
         }
 
         private void SendCallback(IAsyncResult AR)
         {
+            ReportProgress("SendCallBack");
             try
             {
                 Console.WriteLine("SendCallBack");
@@ -269,12 +279,16 @@ namespace SchoolProjectServer
             }
             catch (Exception e)
             {
+                ReportProgress("Error Detected: " + e.Message);
                 Console.WriteLine(e.ToString());
             }
+            ReportProgress(mLastStatus);
         }
 
         public void CloseConnection(Socket pSocket)
         {
+            ReportProgress("Closing connection");
+
             try
             {
                 pSocket.Shutdown(SocketShutdown.Both);
@@ -291,6 +305,10 @@ namespace SchoolProjectServer
 
         public void SendStyleList(Socket pSocket)
         {
+            ReportProgress("Sending style-list");
+
+            mTweetStyles = mOwner.sqlDBConnection.GetTweetStyles();
+
             byte[] lProtocolVersion = BitConverter.GetBytes(PROTOCOL_VERSION);
             MemoryStream lMs = new MemoryStream();
             StreamWriter lSw = new StreamWriter(lMs);
@@ -312,6 +330,8 @@ namespace SchoolProjectServer
 
         public void SendTweets(Socket pSocket,string pStyle)
         {
+            ReportProgress("Sending tweets");
+
             UpdateTweetsWithStyle(pStyle);
 
             MemoryStream lMs = new MemoryStream();
@@ -348,6 +368,8 @@ namespace SchoolProjectServer
         private void SendData(Socket pSocket, MemoryStream pMemoryStream)
         {
             byte[] lBuffer = pMemoryStream.ToArray();
+
+            ReportProgress("Sending data: \n" + System.Text.Encoding.Default.GetString(lBuffer));
 
             try
             {
@@ -448,12 +470,7 @@ namespace SchoolProjectServer
                     }
                 }
             }
-        }
-
-        internal void UpdateTweetStyles(List<TweetStyle> pTweetStyles)
-        {
-            if (pTweetStyles != null)
-                mTweetStyles = pTweetStyles;
+            ReportProgress(mLastStatus);
         }
 
         private void UpdateTweetsWithStyle(string pStyleName)
@@ -472,7 +489,7 @@ namespace SchoolProjectServer
             {
                 string decodedTweet = Tweet.Base64Decode(tweet.TweetText);
 
-                foreach (StyleProperty property in mOwner.GetStyleProperties(selectedStyle.styleName))
+                foreach (StyleProperty property in mOwner.sqlDBConnection.GetTweetStyleProperties(selectedStyle.styleName))
                 {
                     // Exact search, narrow search pattern
                     string replacePattern = @"\b" + property.Original + @"\b";

@@ -44,9 +44,9 @@
     <Reference Include="System.Data" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SchoolProjectServer\SchoolProjectServer.csproj">
+    <ProjectReference Include="..\SchoolProjectGui\SchoolProjectGui.csproj">
       <Project>{74FC4479-DBFE-413D-9235-807C9E6CADA8}</Project>
-      <Name>SchoolProjectServer</Name>
+      <Name>SchoolProjectGui</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

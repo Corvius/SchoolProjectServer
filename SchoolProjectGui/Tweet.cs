@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace SchoolProjectServer
+namespace SchoolProjectGui
 {
     public class Tweet
     {
@@ -19,7 +23,7 @@ namespace SchoolProjectServer
             TweetDownvotes = Downvotes;
         }
 
-        internal void Updatetext(string newText)
+        public void Updatetext(string newText)
         {
             TweetText = newText;
         }
