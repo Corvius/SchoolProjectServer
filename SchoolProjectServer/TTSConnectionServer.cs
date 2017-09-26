@@ -244,6 +244,8 @@ namespace SchoolProjectServer
                     {
                         lData = lStateObject.mSb.ToString();
                         ServerHandleData(lHandler, lData);
+                        lStateObject.mSb.Clear();
+                        lHandler.BeginReceive(lStateObject.mBuffer, 0, StateObject.Buffer_Size, 0, new AsyncCallback(ReadCallback), lStateObject);
                     }
                     else
                     {
@@ -460,7 +462,6 @@ namespace SchoolProjectServer
                                 lServerState = ServerState.stateProtocolError;
                                 mLastStatus = "Received something I could not decode : \n" + pData + ". Closing connection.";
                                 SendEOT(pSocket);
-                                CloseConnection(pSocket);
                                 break;
                             }
                     }
