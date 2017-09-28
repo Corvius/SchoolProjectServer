@@ -189,7 +189,7 @@ namespace SchoolProjectServer
 
         public RichTextBoxExt()
         {
-            m_MaxLines = 50;
+            m_MaxLines = 200;
         }
 
         public void AppendLine(params object[] textParams)
