@@ -476,6 +476,8 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
+            ReportProgress("Updating tweets with style: " + pStyleName);
+
             List<Tweet> tweets = mOwner.sqlDBConnection.GetTweetsFromDatabase(TWEETS_TO_SEND);
 
             TweetStyle selectedStyle = null;
@@ -486,25 +488,43 @@ namespace SchoolProjectServer
                     break;
                 }
 
+            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
             foreach (Tweet tweet in tweets)
             {
                 string decodedTweet = Tweet.Base64Decode(tweet.TweetText);
 
                 foreach (StyleProperty property in mOwner.sqlDBConnection.GetTweetStyleProperties(selectedStyle.styleName))
                 {
-                    // Exact search, narrow search pattern
-                    string replacePattern = @"\b" + property.Original + @"\b";
-                    string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
+                    string result = String.Empty;
+                    string capitalKey = FirstLetterToUpperCase(property.Original);
+                    string lowerKey = property.Original.ToLower();
+                    string capitalValue = FirstLetterToUpperCase(property.Replacement);
+                    string lowerValue = property.Replacement.ToLower();
 
-                    // Loose search, wide search pattern
-                    //string replacePattern = property.Original; // Partial match
-                    //string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
+                    string replaceCapitalPattern = @"\b" + capitalKey + @"\b";
+                    string replaceLowerPattern = @"\b" + lowerKey + @"\b";
 
+                    result = Regex.Replace(decodedTweet, replaceCapitalPattern, capitalValue);
+                    result = Regex.Replace(decodedTweet, replaceLowerPattern, lowerValue);
                     decodedTweet = result;
                 }
                 tweet.Updatetext(Tweet.Base64Encode(decodedTweet));
+                ReportProgress(decodedTweet);
             }
             mTweets = tweets;
+            sw.Stop();
+            ReportProgress(String.Format("Tweets updated with style.\nElapsed time: {0}", sw.Elapsed));
         }
+
+        private static string FirstLetterToUpperCase(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+                throw new ArgumentException("There is no first letter");
+
+            char[] a = s.ToCharArray();
+            a[0] = char.ToUpper(a[0]);
+            return new string(a);
+        }
+
     }
 }
