@@ -120,6 +120,7 @@
             this.txtConsoleOutput.Location = new System.Drawing.Point(16, 115);
             this.txtConsoleOutput.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.txtConsoleOutput.Name = "txtConsoleOutput";
+            this.txtConsoleOutput.ReadOnly = true;
             this.txtConsoleOutput.Size = new System.Drawing.Size(546, 628);
             this.txtConsoleOutput.TabIndex = 6;
             this.txtConsoleOutput.Text = "";

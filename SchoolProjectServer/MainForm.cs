@@ -65,7 +65,7 @@ namespace SchoolProjectServer
 
         private void tweetUpdaterThread_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-            txtConsoleOutput.AppendLine(Color.ForestGreen, "TweetUpdater", " - ", e.UserState.ToString());
+            txtConsoleOutput.AppendLine(Color.ForestGreen, "TweetUpdater", " - ", e.UserState);
         }
         #endregion
 
@@ -102,7 +102,8 @@ namespace SchoolProjectServer
 
         private void listenerThread_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-            txtConsoleOutput.AppendLine(Color.ForestGreen, "Listener", " - ", e.UserState.ToString());
+            txtConsoleOutput.Append(Color.ForestGreen, "Listener", " - ");
+            txtConsoleOutput.AppendLine((object[])e.UserState);
         }
         #endregion
 
@@ -169,7 +170,7 @@ namespace SchoolProjectServer
             connectionServer = new TTSConnectionServer(this);
 
             listenerThread.RunWorkerAsync();
-            txtConsoleOutput.AppendLine("Server is now ", Color.LawnGreen, "LISTENING", " on port ", Color.Blue, "7756"); //TODO: Add reference to port here
+            txtConsoleOutput.AppendLine("Server is now ", Color.ForestGreen, "LISTENING", " on port ", Color.Blue, "7756"); //TODO: Add reference to port here
 
             btStartServer.Text = "Stop server and exit";
             isServerRunning = true;
@@ -186,6 +187,7 @@ namespace SchoolProjectServer
     public class RichTextBoxExt : RichTextBox
     {
         public int m_MaxLines { get; }
+        private bool inTextBlock = false;
 
         public RichTextBoxExt()
         {
@@ -194,15 +196,19 @@ namespace SchoolProjectServer
 
         public void AppendLine(params object[] textParams)
         {
-            Append("[" + DateTime.Now.ToString() + "]:  ");
-            object[] newParams = new object[textParams.Length + 1];
-            Array.Copy(textParams, newParams, textParams.Length);
-            newParams[newParams.Length - 1] = "\n";
-            Append(newParams);
+            Append(textParams);
+            Append(Environment.NewLine);
+            inTextBlock = false;
         }
 
         public void Append(params object[] textParams)
         {
+            if (!inTextBlock)
+            {
+                AppendText("[" + DateTime.Now.ToString() + "]:  ");
+                inTextBlock = true;
+            }
+
             SelectionStart = TextLength;
             SelectionLength = 0;
 

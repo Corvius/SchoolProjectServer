@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Drawing;
 
 // This class manages the connection between TTS Client and Server
 // The implementation is to be used on both sides to maintain integrity
@@ -135,9 +136,9 @@ namespace SchoolProjectServer
             mOwner = pOwner;
         }
 
-        public void ReportProgress(string message)
+        public void ReportProgress(params object[] messages)
         {
-            mOwner.listenerThread.ReportProgress(0, message);
+            mOwner.listenerThread.ReportProgress(0, messages);
         }
 
         public void StartListening()
@@ -167,9 +168,9 @@ namespace SchoolProjectServer
                     return;
                 }
                 Socket lListenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                lListenerSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 mIPEndPoint = new IPEndPoint(lIPAddress, COMMUNICATION_PORT);
                 mLastStatus = "Working as a server. Listening on port " + mIPEndPoint.Port.ToString();
-                ReportProgress(mLastStatus);
                 try
                 {
                     lListenerSocket.Bind(mIPEndPoint);
@@ -211,7 +212,6 @@ namespace SchoolProjectServer
 
         public void AcceptCallback(IAsyncResult AR)
         {
-            Console.WriteLine("AcceptCallBack");
             // Signal the main thread to continue.  
             EAllDone.Set();
 
@@ -228,7 +228,6 @@ namespace SchoolProjectServer
 
         public void ReadCallback(IAsyncResult AR)
         {
-            ReportProgress("ReadCallBack");
             try
             {
                 StateObject lStateObject = (StateObject)AR.AsyncState;
@@ -267,16 +266,16 @@ namespace SchoolProjectServer
 
         private void SendCallback(IAsyncResult AR)
         {
-            ReportProgress("SendCallBack");
             try
             {
                 Console.WriteLine("SendCallBack");
                 Socket lHandler = (Socket)AR.AsyncState;
                 int lSentBytes = lHandler.EndSend(AR);
                 mLastStatus = "Sent " + lSentBytes.ToString() + " bytes.";
+                ReportProgress("Sent ", Color.Blue, lSentBytes.ToString(), " bytes.");
 
-//                lHandler.Shutdown(SocketShutdown.Both);
-//                lHandler.Close();
+                //                lHandler.Shutdown(SocketShutdown.Both);
+                //                lHandler.Close();
                 ESendDone.Set();
             }
             catch (Exception e)
@@ -284,7 +283,6 @@ namespace SchoolProjectServer
                 ReportProgress("Error Detected: " + e.Message);
                 Console.WriteLine(e.ToString());
             }
-            ReportProgress(mLastStatus);
         }
 
         public void CloseConnection(Socket pSocket)
@@ -330,11 +328,10 @@ namespace SchoolProjectServer
             ESendDone.WaitOne();
         }
 
-        public void SendTweets(Socket pSocket,string pStyle)
+        public void SendTweets(Socket pSocket, string pStyle)
         {
-            ReportProgress("Sending tweets");
-
             UpdateTweetsWithStyle(pStyle);
+            ReportProgress("Sending tweets");
 
             MemoryStream lMs = new MemoryStream();
             StreamWriter lSw = new StreamWriter(lMs);
@@ -370,8 +367,6 @@ namespace SchoolProjectServer
         private void SendData(Socket pSocket, MemoryStream pMemoryStream)
         {
             byte[] lBuffer = pMemoryStream.ToArray();
-
-            ReportProgress("Sending data: \n" + System.Text.Encoding.Default.GetString(lBuffer));
 
             try
             {
@@ -446,7 +441,7 @@ namespace SchoolProjectServer
                                     mLastStatus = "Received request for Tweets, sending it now.";
                                     if ((lLine = reader.ReadLine()) != null)
                                     {
-                                        SendTweets(pSocket,lLine);
+                                        SendTweets(pSocket, lLine);
                                         return;
                                     }
                                     else
@@ -476,8 +471,6 @@ namespace SchoolProjectServer
 
         private void UpdateTweetsWithStyle(string pStyleName)
         {
-            ReportProgress("Updating tweets with style: " + pStyleName);
-
             List<Tweet> tweets = mOwner.sqlDBConnection.GetTweetsFromDatabase(TWEETS_TO_SEND);
 
             TweetStyle selectedStyle = null;
@@ -488,7 +481,6 @@ namespace SchoolProjectServer
                     break;
                 }
 
-            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
             foreach (Tweet tweet in tweets)
             {
                 string decodedTweet = Tweet.Base64Decode(tweet.TweetText);
@@ -509,11 +501,9 @@ namespace SchoolProjectServer
                     decodedTweet = result;
                 }
                 tweet.Updatetext(Tweet.Base64Encode(decodedTweet));
-                ReportProgress(decodedTweet);
             }
             mTweets = tweets;
-            sw.Stop();
-            ReportProgress(String.Format("Tweets updated with style.\nElapsed time: {0}", sw.Elapsed));
+            ReportProgress("Tweets updated with style: ", Color.Blue, pStyleName);
         }
 
         private static string FirstLetterToUpperCase(string s)
