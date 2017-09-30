@@ -12,7 +12,7 @@ namespace SchoolProjectServer
     public partial class MainForm : Form
     {
         private const int maxTweetsToFetch = 100;
-        private int timerIntervalSeconds = 3600;
+        private int timerIntervalSeconds = 300;
         private bool isServerRunning = false;
 
         internal BackgroundWorker tweetUpdaterThread;

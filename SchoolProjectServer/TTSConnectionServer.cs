@@ -98,7 +98,7 @@ namespace SchoolProjectServer
         private const long PROTOCOL_VERSION = 0xA000;
         private const int SERVER_LIMIT = 8;
         private const string EOF_STRING = "<EOF>";
-        private const int TWEETS_TO_SEND = 8;
+        private const int TWEETS_TO_SEND = 12;
 
         // Variables
         IPEndPoint mIPEndPoint;
@@ -487,17 +487,21 @@ namespace SchoolProjectServer
 
                 foreach (StyleProperty property in mOwner.sqlDBConnection.GetTweetStyleProperties(selectedStyle.styleName))
                 {
-                    string result = String.Empty;
-                    string capitalKey = FirstLetterToUpperCase(property.Original);
-                    string lowerKey = property.Original.ToLower();
-                    string capitalValue = FirstLetterToUpperCase(property.Replacement);
-                    string lowerValue = property.Replacement.ToLower();
+                    //string result = String.Empty;
+                    //string capitalKey = FirstLetterToUpperCase(property.Original);
+                    //string lowerKey = property.Original.ToLower();
+                    //string capitalValue = FirstLetterToUpperCase(property.Replacement);
+                    //string lowerValue = property.Replacement.ToLower();
 
-                    string replaceCapitalPattern = @"\b" + capitalKey + @"\b";
-                    string replaceLowerPattern = @"\b" + lowerKey + @"\b";
+                    //string replaceCapitalPattern = @"\b" + capitalKey + @"\b";
+                    //string replaceLowerPattern = @"\b" + lowerKey + @"\b";
 
-                    result = Regex.Replace(decodedTweet, replaceCapitalPattern, capitalValue);
-                    result = Regex.Replace(decodedTweet, replaceLowerPattern, lowerValue);
+                    //result = Regex.Replace(decodedTweet, replaceCapitalPattern, capitalValue);
+                    //result = Regex.Replace(decodedTweet, replaceLowerPattern, lowerValue);
+
+                    string replacePattern = @"\b" + property.Original + @"\b";
+                    string result = Regex.Replace(decodedTweet, replacePattern, property.Replacement, RegexOptions.IgnoreCase);
+
                     decodedTweet = result;
                 }
                 tweet.Updatetext(Tweet.Base64Encode(decodedTweet));
