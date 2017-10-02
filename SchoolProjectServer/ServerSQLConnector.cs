@@ -15,7 +15,6 @@ namespace SchoolProjectServer
         private readonly string dbPass = "";
 
         internal readonly static string defaultServerURL = "trumptweetstyle.database.windows.net";
-        internal readonly static string defaultServerPort = ""; // 1433
 
         internal ServerSQLConnector()
         {
