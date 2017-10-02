@@ -11,8 +11,8 @@ namespace SchoolProjectServer
         private string connectionString;
 
         private readonly string dbName = "TTS";
-        private readonly string dbUser = "TTS_admin";
-        private readonly string dbPass = "ReadyToUse1";
+        private readonly string dbUser = "";
+        private readonly string dbPass = "";
 
         internal readonly static string defaultServerURL = "trumptweetstyle.database.windows.net";
         internal readonly static string defaultServerPort = ""; // 1433
@@ -34,7 +34,6 @@ namespace SchoolProjectServer
             builder.Password = dbPass;
 
             connectionString = builder.ConnectionString;
-            connectionString = "Server = tcp:trumptweetstyle.database.windows.net,1433; Initial Catalog = TTS; Persist Security Info = False; User ID = TTS_admin; Password = ReadyToUse1; MultipleActiveResultSets = False; Encrypt = True; TrustServerCertificate = False; Connection Timeout = 30;";
         }
 
         public List<Tweet> GetTweetsFromDatabase(int tweetCount)
